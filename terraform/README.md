@@ -52,16 +52,38 @@ SecureString instead of a manual `kubectl create secret`.
 
 ```bash
 cd terraform
+aws sso login   # or however you normally authenticate
+./deploy.sh
+```
+
+`deploy.sh` runs preflight checks (terraform/AWS CLI present, AWS
+credentials valid), prompts for `auth_password` if it isn't already set
+via `TF_VAR_auth_password` or a `.tfvars` file (input hidden, not written
+to disk), then runs `init` → `validate` → `plan` → (confirm) → `apply`,
+logging everything to `./deploy-logs/` — both this script's own output
+and Terraform's own `TF_LOG=DEBUG` trace, so a failure at any step is
+fully captured, not just what scrolled past in the terminal.
+
+```
+./deploy.sh --plan-only          # init + plan, stop before apply
+./deploy.sh --auto-approve       # skip the "type yes" prompt
+./deploy.sh --log-level TRACE    # even more verbose Terraform logging
+./deploy.sh --destroy            # tear it all down (always confirms)
+./deploy.sh --force-destroy      # tear down with no prompt at all
+```
+
+**The logs in `deploy-logs/` are gitignored but are not safe to share
+as-is** — `TF_LOG=DEBUG`/`TRACE` capture provider request bodies, which
+means your `auth_password` shows up in plaintext in the Terraform log
+whenever the SSM parameter is created. Redact before sharing, delete
+when you're done troubleshooting.
+
+If you'd rather run Terraform directly instead of through the script:
+
+```bash
 terraform init
-
-cat > terraform.tfvars <<'EOF'
-auth_password = "choose-a-strong-password"
-EOF
-# terraform.tfvars is gitignored — never commit a real password.
-# TF_VAR_auth_password=... works too, if you'd rather not use a file.
-
-terraform plan
-terraform apply
+TF_VAR_auth_password="choose-a-strong-password" terraform plan
+TF_VAR_auth_password="choose-a-strong-password" terraform apply
 ```
 
 First apply takes a while: EC2 boot, then `user_data` installs k3s, waits
@@ -128,7 +150,7 @@ route instead of the Lambda splash page.
 ## Destroying
 
 ```bash
-terraform destroy
+./deploy.sh --destroy
 ```
 
 This deletes the EC2 instance, its EBS volume (and the SQLite database on

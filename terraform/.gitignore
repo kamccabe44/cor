@@ -6,3 +6,5 @@
 *.tfvars.json
 .build/
 crash.log
+deploy-logs/
+tfplan*
