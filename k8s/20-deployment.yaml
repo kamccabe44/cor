@@ -30,6 +30,11 @@ spec:
           env:
             - name: NODE_ENV
               value: "production"
+            - name: AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cor-auth
+                  key: password
           volumeMounts:
             - name: data
               mountPath: /app/data

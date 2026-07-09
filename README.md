@@ -50,6 +50,21 @@ npm run build
 npm run start
 ```
 
+## Authentication
+
+There's no login by default in local dev — the whole point is a fast
+`npm install && npm run dev` loop. Set `AUTH_PASSWORD` to turn on a
+login page (a single shared password, checked by `middleware.ts` against
+a signed session cookie) in front of every route except `/api/health`:
+
+```bash
+AUTH_PASSWORD=devpass npm run dev
+```
+
+The k3s deployment sets this from a Secret so the app is gated by
+default whenever it's reachable from outside your machine — see
+[`k8s/README.md`](k8s/README.md#3-set-the-login-password).
+
 ## Running on Kubernetes (k3s)
 
 See [`k8s/README.md`](k8s/README.md) for a Dockerfile + manifests to run

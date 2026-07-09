@@ -6,11 +6,17 @@ laptop or a single Ubuntu box on AWS — k3s ships with a local-path
 storage provisioner (used by `10-pvc.yaml`) and Traefik as its ingress
 controller, so nothing extra needs to be installed for either.
 
-**No built-in login.** This app has no authentication — anyone who can
-reach the Service can view and edit your contract data. That's fine on
-your laptop, but if you put it on an AWS box, lock the security group
-down to your own IP (or put it behind a WireGuard/SSH tunnel) rather than
-opening it to `0.0.0.0/0`. Don't expose it publicly as-is.
+**Authentication.** The app gates every page and API route behind a
+single shared password (there's no per-user accounts — it's a personal
+tool) whenever the `AUTH_PASSWORD` environment variable is set. Step 3
+below creates that as a k8s Secret. If you skip it, the app runs
+open — fine on `npm run dev` on your laptop, but don't put an
+unauthenticated deployment on a public AWS IP. Auth alone also isn't a
+substitute for network-level controls: still restrict the security group
+to your own IP (or tunnel in over SSH/WireGuard) rather than opening
+`0.0.0.0/0`, and note that without TLS configured on the Ingress, the
+password travels in plaintext — fine over a VPN/tunnel, not fine over the
+open internet.
 
 ## 1. Install k3s
 
@@ -71,7 +77,25 @@ docker save cor-tracker:local | sudo k3s ctr images import -
 Then set `image: cor-tracker:local` and `imagePullPolicy: Never` in
 `20-deployment.yaml`.
 
-## 3. Deploy
+## 3. Set the login password
+
+The Deployment reads `AUTH_PASSWORD` from a Secret named `cor-auth` that
+isn't checked into git — create it yourself before the first deploy
+(the pod will sit in `CreateContainerConfigError` until this secret
+exists):
+
+```bash
+kubectl create namespace cor-tracker
+kubectl -n cor-tracker create secret generic cor-auth \
+  --from-literal=password='choose-a-strong-password'
+```
+
+Changing the password later (`kubectl -n cor-tracker delete secret
+cor-auth` then recreate it, followed by a `rollout restart`) invalidates
+all existing sessions, since sessions are signed with a key derived from
+the password itself.
+
+## 4. Deploy
 
 ```bash
 kubectl apply -k k8s/
@@ -88,7 +112,7 @@ running two pods against the same PVC would corrupt the database. The
 old pod is fully terminated before the new one starts, meaning there's a
 few seconds of downtime on every deploy — acceptable for a personal tool.
 
-## 4. Access it
+## 5. Access it
 
 Zero-config option, works anywhere `kubectl` can reach the cluster:
 
@@ -108,14 +132,17 @@ echo "127.0.0.1 cor.localhost" | sudo tee -a /etc/hosts   # local only
 
 then open <http://cor.localhost>.
 
-## 5. Updating after a code change
+Either way, you'll land on a login page first — enter the password from
+step 3. Sessions last 14 days.
+
+## 6. Updating after a code change
 
 ```bash
 docker build -t ghcr.io/kamccabe44/cor:latest . && docker push ghcr.io/kamccabe44/cor:latest
 kubectl -n cor-tracker rollout restart deployment/cor-tracker
 ```
 
-## 6. Backing up the data
+## 7. Backing up the data
 
 The SQLite file lives on the `cor-data` PVC, mounted at `/app/data` in
 the pod. To pull a copy:
