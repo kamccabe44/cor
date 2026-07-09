@@ -50,6 +50,11 @@ npm run build
 npm run start
 ```
 
+See [`LOCAL_DEVELOPMENT.md`](LOCAL_DEVELOPMENT.md) for a full local
+walkthrough — a step-by-step path through every module that deliberately
+triggers each dashboard alert, plus testing auth, the USASpending
+import, and the Docker image locally.
+
 ## Authentication
 
 There's no login by default in local dev — the whole point is a fast
