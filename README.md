@@ -61,18 +61,20 @@ a signed session cookie) in front of every route except `/api/health`:
 AUTH_PASSWORD=devpass npm run dev
 ```
 
-The k3s deployment sets this from a Secret so the app is gated by
-default whenever it's reachable from outside your machine — see
-[`k8s/README.md`](k8s/README.md#3-set-the-login-password).
+The k3s/Helm deployment sets this at install/upgrade time (`--set-string
+auth.password=...`) so the app is gated by default whenever it's
+reachable from outside your machine — see
+[`helm/README.md`](helm/README.md).
 
 ## Running on Kubernetes (k3s)
 
-See [`k8s/README.md`](k8s/README.md) for a Dockerfile + manifests to run
-this on a personal/dev k3s cluster, locally or on a single AWS Ubuntu box.
+See [`helm/README.md`](helm/README.md) for the Helm chart (`helm/cor-tracker/`)
+that deploys this to a personal/dev k3s cluster, locally or on a single
+AWS Ubuntu box. `Dockerfile` at the repo root builds the image it runs.
 
 For a hands-off AWS deployment that stops itself when idle and wakes back
 up on access, see [`terraform/README.md`](terraform/README.md) — it
-provisions that same EC2/k3s setup plus a Lambda that starts the
+provisions that same EC2/k3s/Helm setup plus a Lambda that starts the
 instance and shows a splash page while it boots, and a scheduled Lambda
 that stops it again after 20 minutes of inactivity.
 

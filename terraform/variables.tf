@@ -47,7 +47,7 @@ variable "root_volume_size_gb" {
 }
 
 variable "container_image" {
-  description = "Container image reference already baked into k8s/20-deployment.yaml. Informational only here — used for the output message, not substituted into the manifest."
+  description = "Container image reference as repository:tag. Split apart in ec2.tf and passed to Helm as image.repository/image.tag when user_data runs `helm upgrade --install`."
   type        = string
   default     = "ghcr.io/kamccabe44/cor:latest"
 }

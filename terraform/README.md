@@ -2,9 +2,10 @@
 
 Runs the COR Tracker on a single EC2 instance that's normally **stopped**,
 and wakes itself up when someone visits `cor.1136mpco.com`. Nothing about
-this touches the k3s manifests in `../k8s/` — this reuses them as-is; it
-just adds the AWS plumbing to make the same deployment start on demand
-and stop itself after `20` idle minutes.
+this touches the Helm chart in `../helm/cor-tracker/` — this reuses it
+as-is; it just adds the AWS plumbing (and a Docker/kubectl/Helm/k9s/k3s
+install) to make the same deployment start on demand and stop itself
+after `20` idle minutes.
 
 ## Architecture
 
@@ -25,16 +26,20 @@ EventBridge (rate(5 min)) → Lambda "idle-stopper"
           20 minutes → StopInstances
 ```
 
-The EC2 instance itself is exactly what `../k8s/README.md` describes —
-k3s + the manifests in `../k8s/*.yaml` — just bootstrapped automatically
-via `user_data` instead of by hand, with `cor-auth` populated from an SSM
-SecureString instead of a manual `kubectl create secret`.
+`user_data` bootstraps the instance the same way `../helm/README.md`
+describes doing by hand: install Docker, `kubectl`, Helm, k9s, and k3s,
+then `helm upgrade --install` the chart in `../helm/cor-tracker/` (shipped
+to the instance via a private S3 bucket Terraform creates and uploads it
+to). The only difference from the manual flow is where `auth.password`
+comes from — an SSM SecureString here instead of typed on the command
+line.
 
 ## Prerequisites
 
-1. **The container image must already be pushed and public** at whatever
-   `20-deployment.yaml` references (`ghcr.io/kamccabe44/cor:latest` by
-   default) — see `../k8s/README.md` step 2. The instance pulls it on
+1. **The container image must already be pushed and public** — the
+   `container_image` variable (`ghcr.io/kamccabe44/cor:latest` by
+   default) is what gets passed to Helm as `image.repository`/`image.tag`.
+   See the root `README.md` / `../Dockerfile`. The instance pulls it on
    first boot; there's no build step in this Terraform.
 2. **A Route53 public hosted zone for `1136mpco.com` must already exist**
    in the AWS account/region you're applying to (`data "aws_route53_zone"`
@@ -118,11 +123,21 @@ After that, the instance sits stopped whenever nobody's using it. Visit
 
 `user_data` only runs on first boot — stopping/starting the instance
 does **not** re-run it, so a new image push doesn't show up
-automatically. To pick up a new image, either:
+automatically. To pick up a new image, SSM into the box
+(`terraform output ssm_session_command`) and either restart the existing
+deployment to re-pull the same tag:
 
-- SSM into the box (`terraform output ssm_session_command`) and run
-  `k3s kubectl -n cor-tracker rollout restart deployment/cor-tracker`, or
-- follow the update steps in `../k8s/README.md` directly on the instance.
+```bash
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+kubectl -n cor-tracker rollout restart deployment/cor-tracker
+```
+
+or bump to a new tag with Helm directly — see `../helm/README.md`:
+
+```bash
+helm upgrade cor-tracker /opt/cor-tracker-chart --namespace cor-tracker \
+  --reuse-values --set image.tag=v1.3.0
+```
 
 ## Cost
 
@@ -171,9 +186,19 @@ route instead of the Lambda splash page.
 ./deploy.sh --destroy
 ```
 
-This deletes the EC2 instance, its EBS volume (and the SQLite database on
-it — back up first if you care about the data, see
-`../k8s/README.md#7-backing-up-the-data`, or `scp`/`ssm` it off before
-destroying), the Elastic IP, both Lambdas, the API Gateway domain, and
-the ACM certificate. It does **not** delete the Route53 hosted zone
+This deletes the EC2 instance, its EBS volume, the Elastic IP, both
+Lambdas, the API Gateway domain, the ACM certificate, and the S3 bucket
+holding the Helm chart. It does **not** delete the Route53 hosted zone
 itself (Terraform never created it, only records inside it).
+
+The SQLite database lives on that EBS volume and goes with it — back it
+up first if you care about the data:
+
+```bash
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+POD="$(kubectl -n cor-tracker get pod -l app.kubernetes.io/name=cor-tracker -o jsonpath='{.items[0].metadata.name}')"
+kubectl -n cor-tracker cp "$POD:/app/data/cor.db" ./cor.db.bak
+```
+
+(run that over the SSM session from `terraform output ssm_session_command`,
+or `scp` the file off some other way.)

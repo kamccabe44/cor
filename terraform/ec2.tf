@@ -1,17 +1,15 @@
 locals {
-  k8s_manifest_files = [
-    "00-namespace.yaml",
-    "10-pvc.yaml",
-    "20-deployment.yaml",
-    "30-service.yaml",
-    "40-ingress.yaml",
-  ]
-  k8s_manifests = join("\n---\n", [for f in local.k8s_manifest_files : file("${path.module}/../k8s/${f}")])
+  image_repository = split(":", var.container_image)[0]
+  image_tag        = split(":", var.container_image)[1]
 
   user_data = templatefile("${path.module}/user_data.sh.tftpl", {
     ssm_parameter_name = aws_ssm_parameter.auth_password.name
     aws_region         = var.aws_region
-    k8s_manifests      = local.k8s_manifests
+    chart_bucket       = aws_s3_bucket.helm_chart.id
+    chart_key          = aws_s3_object.helm_chart.key
+    image_repository   = local.image_repository
+    image_tag          = local.image_tag
+    ingress_host       = local.fqdn
   })
 }
 

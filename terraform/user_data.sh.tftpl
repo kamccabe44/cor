@@ -8,14 +8,46 @@ set -euxo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
-apt-get install -y awscli jq
+apt-get install -y awscli jq unzip curl ca-certificates
 
+# ---------- Docker ----------
+curl -fsSL https://get.docker.com | sh
+usermod -aG docker ubuntu
+
+# ---------- kubectl ----------
+KUBECTL_VERSION="v1.31.2"
+curl -fsSLo /usr/local/bin/kubectl "https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl"
+chmod +x /usr/local/bin/kubectl
+
+# ---------- Helm ----------
+HELM_VERSION="v3.16.3"
+curl -fsSL "https://get.helm.sh/helm-$HELM_VERSION-linux-amd64.tar.gz" | tar xz -C /tmp
+install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
+rm -rf /tmp/linux-amd64
+
+# ---------- k9s ----------
+K9S_VERSION="v0.32.7"
+curl -fsSL "https://github.com/derailed/k9s/releases/download/$K9S_VERSION/k9s_Linux_amd64.tar.gz" | tar xz -C /tmp k9s
+install -m 0755 /tmp/k9s /usr/local/bin/k9s
+rm -f /tmp/k9s
+
+# ---------- k3s ----------
 curl -sfL https://get.k3s.io | sh -
 
 until k3s kubectl get nodes >/dev/null 2>&1; do
   sleep 2
 done
 
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+# Make kubectl/helm/k9s usable as the ubuntu user (SSH/SSM login) without sudo.
+mkdir -p /home/ubuntu/.kube
+cp /etc/rancher/k3s/k3s.yaml /home/ubuntu/.kube/config
+chown -R ubuntu:ubuntu /home/ubuntu/.kube
+chmod 600 /home/ubuntu/.kube/config
+echo 'export KUBECONFIG=$HOME/.kube/config' >> /home/ubuntu/.bashrc
+
+# ---------- Fetch the app's login password from SSM ----------
 AUTH_PASSWORD="$(aws ssm get-parameter \
   --name '${ssm_parameter_name}' \
   --with-decryption \
@@ -23,14 +55,19 @@ AUTH_PASSWORD="$(aws ssm get-parameter \
   --query 'Parameter.Value' \
   --output text)"
 
-k3s kubectl create namespace cor-tracker --dry-run=client -o yaml | k3s kubectl apply -f -
+# ---------- Fetch and deploy the Helm chart ----------
+mkdir -p /opt/cor-tracker-chart
+aws s3 cp "s3://${chart_bucket}/${chart_key}" /tmp/cor-tracker-chart.zip --region '${aws_region}'
+unzip -o /tmp/cor-tracker-chart.zip -d /opt/cor-tracker-chart
+rm -f /tmp/cor-tracker-chart.zip
 
-k3s kubectl -n cor-tracker create secret generic cor-auth \
-  --from-literal=password="$AUTH_PASSWORD" \
-  --dry-run=client -o yaml | k3s kubectl apply -f -
-
-cat <<'K8S_MANIFESTS' | k3s kubectl apply -f -
-${k8s_manifests}
-K8S_MANIFESTS
+helm upgrade --install cor-tracker /opt/cor-tracker-chart \
+  --namespace cor-tracker \
+  --create-namespace \
+  --set-string auth.password="$AUTH_PASSWORD" \
+  --set image.repository='${image_repository}' \
+  --set image.tag='${image_tag}' \
+  --set ingress.host='${ingress_host}' \
+  --wait --timeout 5m
 
 k3s kubectl -n cor-tracker rollout status deployment/cor-tracker --timeout=300s

@@ -48,6 +48,26 @@ resource "aws_iam_role_policy" "ec2_read_auth_password" {
   policy = data.aws_iam_policy_document.ec2_read_auth_password.json
 }
 
+data "aws_iam_policy_document" "ec2_read_helm_chart" {
+  statement {
+    sid       = "ListChartBucket"
+    actions   = ["s3:ListBucket"]
+    resources = [aws_s3_bucket.helm_chart.arn]
+  }
+
+  statement {
+    sid       = "ReadChartObject"
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.helm_chart.arn}/*"]
+  }
+}
+
+resource "aws_iam_role_policy" "ec2_read_helm_chart" {
+  name   = "read-helm-chart"
+  role   = aws_iam_role.ec2.id
+  policy = data.aws_iam_policy_document.ec2_read_helm_chart.json
+}
+
 resource "aws_iam_instance_profile" "ec2" {
   name = "cor-tracker-ec2"
   role = aws_iam_role.ec2.name
