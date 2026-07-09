@@ -76,6 +76,12 @@ variable "ssh_key_name" {
   default     = ""
 }
 
+variable "notification_email" {
+  description = "Email address subscribed to the SNS topic that the proxy and idle-stopper Lambdas notify on every actual start/stop. SNS emails a confirmation link to this address on first apply -- notifications won't arrive until it's clicked."
+  type        = string
+  default     = "kevin@ozarksdigitalsolutions.com"
+}
+
 variable "tags" {
   description = "Common tags applied to all resources."
   type        = map(string)

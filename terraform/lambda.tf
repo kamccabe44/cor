@@ -57,6 +57,20 @@ resource "aws_iam_role_policy" "proxy_ec2" {
   policy = data.aws_iam_policy_document.proxy_ec2.json
 }
 
+data "aws_iam_policy_document" "proxy_sns" {
+  statement {
+    sid       = "PublishStartNotifications"
+    actions   = ["sns:Publish"]
+    resources = [aws_sns_topic.notifications.arn]
+  }
+}
+
+resource "aws_iam_role_policy" "proxy_sns" {
+  name   = "sns-publish"
+  role   = aws_iam_role.proxy.id
+  policy = data.aws_iam_policy_document.proxy_sns.json
+}
+
 resource "aws_cloudwatch_log_group" "proxy" {
   name              = "/aws/lambda/cor-tracker-proxy"
   retention_in_days = 14
@@ -78,6 +92,8 @@ resource "aws_lambda_function" "proxy" {
       INSTANCE_ID     = aws_instance.cor.id
       EC2_HOST        = aws_eip.cor.public_ip
       APP_HOST_HEADER = local.fqdn
+      SNS_TOPIC_ARN   = aws_sns_topic.notifications.arn
+      INSTANCE_NAME   = "cor-tracker"
     }
   }
 
@@ -118,6 +134,20 @@ resource "aws_iam_role_policy" "idle_stopper_ec2" {
   policy = data.aws_iam_policy_document.idle_stopper_ec2.json
 }
 
+data "aws_iam_policy_document" "idle_stopper_sns" {
+  statement {
+    sid       = "PublishStopNotifications"
+    actions   = ["sns:Publish"]
+    resources = [aws_sns_topic.notifications.arn]
+  }
+}
+
+resource "aws_iam_role_policy" "idle_stopper_sns" {
+  name   = "sns-publish"
+  role   = aws_iam_role.idle_stopper.id
+  policy = data.aws_iam_policy_document.idle_stopper_sns.json
+}
+
 resource "aws_cloudwatch_log_group" "idle_stopper" {
   name              = "/aws/lambda/cor-tracker-idle-stopper"
   retention_in_days = 14
@@ -136,8 +166,10 @@ resource "aws_lambda_function" "idle_stopper" {
 
   environment {
     variables = {
-      INSTANCE_ID  = aws_instance.cor.id
-      IDLE_MINUTES = tostring(var.idle_shutdown_minutes)
+      INSTANCE_ID   = aws_instance.cor.id
+      IDLE_MINUTES  = tostring(var.idle_shutdown_minutes)
+      SNS_TOPIC_ARN = aws_sns_topic.notifications.arn
+      INSTANCE_NAME = "cor-tracker"
     }
   }
 

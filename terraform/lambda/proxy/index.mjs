@@ -4,11 +4,15 @@ import {
   StartInstancesCommand,
   CreateTagsCommand,
 } from "@aws-sdk/client-ec2";
+import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 
 const ec2 = new EC2Client({});
+const sns = new SNSClient({});
 const INSTANCE_ID = process.env.INSTANCE_ID;
+const INSTANCE_NAME = process.env.INSTANCE_NAME ?? INSTANCE_ID;
 const EC2_HOST = process.env.EC2_HOST;
 const APP_HOST_HEADER = process.env.APP_HOST_HEADER;
+const SNS_TOPIC_ARN = process.env.SNS_TOPIC_ARN;
 const PROXY_TIMEOUT_MS = 4000;
 
 const HOP_BY_HOP_HEADERS = new Set([
@@ -52,6 +56,17 @@ function splashPage(message, status = 200) {
 async function getInstanceState() {
   const res = await ec2.send(new DescribeInstancesCommand({ InstanceIds: [INSTANCE_ID] }));
   return res.Reservations?.[0]?.Instances?.[0]?.State?.Name;
+}
+
+async function notify(subject, message) {
+  if (!SNS_TOPIC_ARN) return;
+  try {
+    await sns.send(
+      new PublishCommand({ TopicArn: SNS_TOPIC_ARN, Subject: subject.slice(0, 100), Message: message })
+    );
+  } catch (err) {
+    console.error("SNS publish failed:", err);
+  }
 }
 
 async function touchLastActive() {
@@ -108,6 +123,18 @@ export const handler = async (event) => {
   if (state === "stopped" || state === "stopping") {
     await ec2.send(new StartInstancesCommand({ InstanceIds: [INSTANCE_ID] }));
     await touchLastActive();
+
+    const sourceIp = event.requestContext?.http?.sourceIp ?? "unknown";
+    const path = event.rawPath || "/";
+    const when = new Date().toISOString();
+    await notify(
+      `COR Tracker: ${INSTANCE_NAME} starting`,
+      `Instance: ${INSTANCE_NAME} (${INSTANCE_ID})\n` +
+        `Action: STARTED\n` +
+        `When: ${when}\n` +
+        `Reason: incoming request to https://${APP_HOST_HEADER}${path} from ${sourceIp} while the instance was ${state}.`
+    );
+
     return splashPage("Waking up the server — this usually takes a minute or two.");
   }
 

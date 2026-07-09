@@ -13,8 +13,9 @@ after `20` idle minutes.
 Browser → https://cor.1136mpco.com (Route53 alias, ACM cert)
         → API Gateway (HTTP API, regional custom domain)
         → Lambda "proxy" function
-              ├─ instance stopped/stopping → StartInstances, return a
-              │   splash page that auto-refreshes every 8s
+              ├─ instance stopped/stopping → StartInstances, publish an
+              │   SNS notification, return a splash page that
+              │   auto-refreshes every 8s
               ├─ instance running, app not answering yet → splash page
               └─ instance running, app answering → reverse-proxies the
                   request to http://<instance EIP> (Host header set to
@@ -23,8 +24,29 @@ Browser → https://cor.1136mpco.com (Route53 alias, ACM cert)
 
 EventBridge (rate(5 min)) → Lambda "idle-stopper"
         → if instance running and LastActive tag is older than
-          20 minutes → StopInstances
+          20 minutes → StopInstances, publish an SNS notification
+
+Both Lambdas → SNS topic "cor-tracker-notifications" → email
 ```
+
+## Notifications
+
+Both Lambdas publish to a shared SNS topic whenever they actually start
+or stop the instance — not on every invocation (the proxy Lambda runs on
+every page load; emailing you for each one would be useless noise). Each
+message says which instance, whether it started or stopped, when, and
+why:
+
+- Start: which path/IP triggered the wake-up.
+- Stop: how many idle minutes it hit against the configured threshold.
+
+The email address is set by `notification_email` (defaults to
+`kevin@ozarksdigitalsolutions.com`). **AWS sends a subscription
+confirmation email on the first `apply` — nothing arrives until you
+click the confirm link in it.** `terraform apply` will print a reminder
+about this in the `notification_email_reminder` output every time, since
+it's easy to miss and SNS fails silently (not an error, just no emails)
+if it's never confirmed.
 
 `user_data` bootstraps the instance the same way `../helm/README.md`
 describes doing by hand: install Docker, `kubectl`, Helm, k9s, and k3s,
