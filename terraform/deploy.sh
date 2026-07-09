@@ -23,7 +23,7 @@ Usage: ./deploy.sh [options]
   --force-destroy   Also skip the destroy confirmation. This deletes
                      the EC2 instance and its EBS volume (including the
                      SQLite database) with no prompt at all. Back up
-                     your data first — see ../k8s/README.md#7-backing-up-the-data.
+                     your data first — see README.md#destroying.
   --log-level LVL   TF_LOG level: TRACE, DEBUG, INFO, WARN, ERROR.
                      Default: DEBUG.
   --vpc-id ID       Existing VPC to launch into (sets TF_VAR_vpc_id).
@@ -145,7 +145,7 @@ if [[ "$ACTION" == "destroy" ]]; then
   log "This will DELETE the EC2 instance and its EBS volume — including the"
   log "SQLite database on it — plus both Lambdas, the API Gateway domain,"
   log "and the ACM certificate. Back it up first if you haven't:"
-  log "  see ../k8s/README.md#7-backing-up-the-data"
+  log "  see README.md#destroying"
 
   if [[ "$FORCE_DESTROY" -eq 0 ]]; then
     read -r -p "Type 'destroy' to proceed: " CONFIRM
