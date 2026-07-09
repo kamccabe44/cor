@@ -50,6 +50,11 @@ npm run build
 npm run start
 ```
 
+## Running on Kubernetes (k3s)
+
+See [`k8s/README.md`](k8s/README.md) for a Dockerfile + manifests to run
+this on a personal/dev k3s cluster, locally or on a single AWS Ubuntu box.
+
 ## Data model
 
 Everything hangs off a `Contract` (one row per contract or task order you
