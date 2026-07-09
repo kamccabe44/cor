@@ -1,10 +1,8 @@
 locals {
-  image_repository = split(":", var.container_image)[0]
-  image_tag        = split(":", var.container_image)[1]
-
   user_data = templatefile("${path.module}/user_data.sh.tftpl", {
     ssm_parameter_name = aws_ssm_parameter.auth_password.name
     aws_region         = var.aws_region
+    ecr_registry       = local.ecr_registry
     chart_bucket       = aws_s3_bucket.helm_chart.id
     chart_key          = aws_s3_object.helm_chart.key
     image_repository   = local.image_repository

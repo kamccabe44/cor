@@ -130,6 +130,13 @@ if [[ "$ACTION" == "apply" ]]; then
     unset AUTH_PASSWORD_INPUT
     log "    Password captured for this run only (not written to disk)."
   fi
+
+  ECR_REPO_NAME="${TF_VAR_ecr_repo_name:-cor}"
+  ECR_REGION="${TF_VAR_aws_region:-us-east-1}"
+  log "==> Checking ECR repository exists: $ECR_REPO_NAME ($ECR_REGION)"
+  if ! aws ecr describe-repositories --repository-names "$ECR_REPO_NAME" --region "$ECR_REGION" >>"$RUN_LOG" 2>&1; then
+    fail "ECR repository '$ECR_REPO_NAME' not found in $ECR_REGION. This stack pulls the app image from ECR by default and expects it to already exist (it's managed separately so it survives a destroy of this stack). Create it first: cd ecr && terraform init && terraform apply -var ecr_repo_name=$ECR_REPO_NAME -var aws_region=$ECR_REGION -- then push an image from the repo root (./scripts/build_and_push.sh) before applying here."
+  fi
 fi
 
 # ---------- Terraform ----------

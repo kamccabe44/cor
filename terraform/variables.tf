@@ -46,10 +46,16 @@ variable "root_volume_size_gb" {
   default     = 20
 }
 
-variable "container_image" {
-  description = "Container image reference as repository:tag. Split apart in ec2.tf and passed to Helm as image.repository/image.tag when user_data runs `helm upgrade --install`."
+variable "ecr_repo_name" {
+  description = "ECR repository name to pull the app image from -- must already exist (see terraform/ecr/, applied separately) and must match its ecr_repo_name."
   type        = string
-  default     = "ghcr.io/kamccabe44/cor:latest"
+  default     = "cor"
+}
+
+variable "container_image" {
+  description = "Container image reference as repository:tag. Leave blank to default to the ECR repo named by ecr_repo_name in this account/region, tag \"latest\". Set explicitly (e.g. ghcr.io/kamccabe44/cor:latest) to use a different registry instead."
+  type        = string
+  default     = ""
 }
 
 variable "auth_password" {

@@ -68,6 +68,30 @@ resource "aws_iam_role_policy" "ec2_read_helm_chart" {
   policy = data.aws_iam_policy_document.ec2_read_helm_chart.json
 }
 
+data "aws_iam_policy_document" "ec2_pull_ecr" {
+  statement {
+    sid       = "GetAuthToken"
+    actions   = ["ecr:GetAuthorizationToken"]
+    resources = ["*"] # ECR API requirement -- this action does not support resource-level restriction
+  }
+
+  statement {
+    sid = "PullThisRepo"
+    actions = [
+      "ecr:BatchGetImage",
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:BatchCheckLayerAvailability",
+    ]
+    resources = [data.aws_ecr_repository.app.arn]
+  }
+}
+
+resource "aws_iam_role_policy" "ec2_pull_ecr" {
+  name   = "ecr-pull"
+  role   = aws_iam_role.ec2.id
+  policy = data.aws_iam_policy_document.ec2_pull_ecr.json
+}
+
 resource "aws_iam_instance_profile" "ec2" {
   name = "cor-tracker-ec2"
   role = aws_iam_role.ec2.name

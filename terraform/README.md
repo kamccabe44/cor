@@ -56,13 +56,42 @@ to). The only difference from the manual flow is where `auth.password`
 comes from — an SSM SecureString here instead of typed on the command
 line.
 
+### Image registry: ECR by default
+
+The instance pulls the app image from a private ECR repo by default —
+`container_image` defaults to `""`, which resolves to
+`<account>.dkr.ecr.<region>.amazonaws.com/<ecr_repo_name>:latest` (see
+`ecr.tf`). Set `container_image` explicitly (e.g. back to
+`ghcr.io/kamccabe44/cor:latest`) to use a different registry instead — no
+other changes needed, GHCR still needs no auth since it's public.
+
+Because ECR is private, this needed more than just an image reference:
+
+- The EC2 role gets `ecr:GetAuthorizationToken` (account-wide, required
+  by the API) plus `ecr:BatchGetImage`/`GetDownloadUrlForLayer`/
+  `BatchCheckLayerAvailability` scoped to just this one repo (`iam.tf`).
+- ECR auth tokens expire after 12 hours, and this instance might sit
+  stopped for days between Lambda-triggered starts — a token fetched
+  once in `user_data` would go stale long before some later start.
+  Instead, `user_data` installs a systemd oneshot service
+  (`ecr-credential-refresh.service`, `Before=k3s.service`) that fetches a
+  fresh token into `/etc/rancher/k3s/registries.yaml` on **every** boot,
+  not just the first — this is the part that actually makes ECR work
+  with the scale-to-zero pattern rather than just on day one.
+
 ## Prerequisites
 
-1. **The container image must already be pushed and public** — the
-   `container_image` variable (`ghcr.io/kamccabe44/cor:latest` by
-   default) is what gets passed to Helm as `image.repository`/`image.tag`.
-   See the root `README.md` / `../Dockerfile`. The instance pulls it on
-   first boot; there's no build step in this Terraform.
+1. **The ECR repo must already exist, with an image pushed to it** — it's
+   a separate, standalone Terraform module (`terraform/ecr/`) on purpose,
+   so it and its images survive a `destroy` of this stack:
+   ```bash
+   cd ecr && terraform init && terraform apply
+   cd .. && ../scripts/build_and_push.sh
+   ```
+   `./deploy.sh` checks the repo exists before doing anything else and
+   fails with this exact fix if it doesn't. Using GHCR instead (set
+   `container_image` explicitly)? Skip this entirely — see the root
+   `README.md` / `../Dockerfile`.
 2. **A Route53 public hosted zone for `1136mpco.com` must already exist**
    in the AWS account/region you're applying to (`data "aws_route53_zone"`
    looks it up by name — plan will fail with a clear "no matching zone"
@@ -96,16 +125,22 @@ line.
 ```bash
 cd terraform
 aws sso login   # or however you normally authenticate
+
+# One-time: create the ECR repo and push an image, if you haven't already
+cd ecr && terraform init && terraform apply && cd ..
+../scripts/build_and_push.sh
+
 ./deploy.sh
 ```
 
 `deploy.sh` runs preflight checks (terraform/AWS CLI present, AWS
-credentials valid), prompts for `auth_password` if it isn't already set
-via `TF_VAR_auth_password` or a `.tfvars` file (input hidden, not written
-to disk), then runs `init` → `validate` → `plan` → (confirm) → `apply`,
-logging everything to `./deploy-logs/` — both this script's own output
-and Terraform's own `TF_LOG=DEBUG` trace, so a failure at any step is
-fully captured, not just what scrolled past in the terminal.
+credentials valid, **the ECR repo exists**), prompts for `auth_password`
+if it isn't already set via `TF_VAR_auth_password` or a `.tfvars` file
+(input hidden, not written to disk), then runs `init` → `validate` →
+`plan` → (confirm) → `apply`, logging everything to `./deploy-logs/` —
+both this script's own output and Terraform's own `TF_LOG=DEBUG` trace,
+so a failure at any step is fully captured, not just what scrolled past
+in the terminal.
 
 ```
 ./deploy.sh --plan-only          # init + plan, stop before apply
@@ -145,16 +180,25 @@ After that, the instance sits stopped whenever nobody's using it. Visit
 
 `user_data` only runs on first boot — stopping/starting the instance
 does **not** re-run it, so a new image push doesn't show up
-automatically. To pick up a new image, SSM into the box
-(`terraform output ssm_session_command`) and either restart the existing
-deployment to re-pull the same tag:
+automatically. To pick up a new image:
+
+```bash
+./scripts/build_and_push.sh   # from the repo root -- pushes :latest to ECR
+```
+
+then SSM into the box (`terraform output ssm_session_command`) and
+restart the existing deployment to re-pull it:
 
 ```bash
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 kubectl -n cor-tracker rollout restart deployment/cor-tracker
 ```
 
-or bump to a new tag with Helm directly — see `../helm/README.md`:
+This works even if the instance had been stopped for days in between —
+`ecr-credential-refresh.service` gets a fresh ECR token on every boot,
+not just the first one, so the pull doesn't hit a stale 12-hour-old
+token. If you pushed a specific tag rather than `:latest`, bump it with
+Helm directly instead — see `../helm/README.md`:
 
 ```bash
 helm upgrade cor-tracker /opt/cor-tracker-chart --namespace cor-tracker \

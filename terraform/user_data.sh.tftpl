@@ -31,6 +31,53 @@ curl -fsSL "https://github.com/derailed/k9s/releases/download/$K9S_VERSION/k9s_L
 install -m 0755 /tmp/k9s /usr/local/bin/k9s
 rm -f /tmp/k9s
 
+# ---------- ECR credential refresh (systemd, runs on every boot) ----------
+# ECR auth tokens expire after 12h, and this instance may sit stopped for
+# days between Lambda-triggered starts -- user_data only runs once, on
+# first boot, so a token baked in here would go stale long before some
+# later start. A systemd oneshot service refreshes
+# /etc/rancher/k3s/registries.yaml with a fresh token instead, ordered
+# to run before k3s starts, on every single boot from now on. It's also
+# run once manually right below, so this same first boot's k3s install
+# picks up valid registries.yaml too.
+cat > /usr/local/bin/refresh-ecr-registry-auth.sh <<'REFRESH_SCRIPT'
+#!/bin/bash
+set -euo pipefail
+mkdir -p /etc/rancher/k3s
+TOKEN="$(aws ecr get-login-password --region "$AWS_REGION")"
+cat > /etc/rancher/k3s/registries.yaml <<YAML
+configs:
+  "$ECR_REGISTRY":
+    auth:
+      username: AWS
+      password: "$TOKEN"
+YAML
+chmod 600 /etc/rancher/k3s/registries.yaml
+REFRESH_SCRIPT
+chmod +x /usr/local/bin/refresh-ecr-registry-auth.sh
+
+cat > /etc/systemd/system/ecr-credential-refresh.service <<UNIT
+[Unit]
+Description=Refresh ECR registry credentials for k3s/containerd
+Before=k3s.service
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+Environment=AWS_REGION=${aws_region}
+Environment=ECR_REGISTRY=${ecr_registry}
+ExecStart=/usr/local/bin/refresh-ecr-registry-auth.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable ecr-credential-refresh.service
+AWS_REGION='${aws_region}' ECR_REGISTRY='${ecr_registry}' /usr/local/bin/refresh-ecr-registry-auth.sh
+
 # ---------- k3s ----------
 curl -sfL https://get.k3s.io | sh -
 

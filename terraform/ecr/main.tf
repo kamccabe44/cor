@@ -1,7 +1,8 @@
 # ── Shared ECR repository (standalone) ────────────────────────────────────────
-# Managed on its own so it survives teardown of any app stack. Not required by
-# the current k3s deployments (they build images locally and import into k3s),
-# but kept available for pushing/pulling the app image when wanted.
+# Managed on its own so it survives teardown of any app stack. The
+# terraform/ (main) deployment pulls its image from here by default --
+# apply this module and push an image (../../scripts/build_and_push.sh)
+# before applying that one. See ../README.md's Prerequisites section.
 
 terraform {
   required_version = ">= 1.6.0"
