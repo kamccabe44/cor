@@ -41,11 +41,27 @@ SecureString instead of a manual `kubectl create secret`.
    looks it up by name — plan will fail with a clear "no matching zone"
    error if it doesn't). If the zone lives in a different account, set
    `route53_zone_id` instead and handle the alias record there yourself.
-3. AWS credentials for `terraform apply` — this was written and
+3. **A VPC to launch into.** By default this looks for the account's
+   default VPC, but plenty of accounts don't have one (AWS stopped
+   creating them for new accounts a while back, and older ones are often
+   deleted deliberately). If `terraform plan` fails with `no matching EC2
+   VPC found`, list what you've actually got and pick one:
+   ```bash
+   aws ec2 describe-vpcs --query 'Vpcs[].{ID:VpcId,CIDR:CidrBlock,IsDefault:IsDefault,Name:Tags[?Key==`Name`]|[0].Value}' --output table
+   ```
+   then pass it via `./deploy.sh --vpc-id vpc-xxxx` (or `TF_VAR_vpc_id`).
+   It auto-picks a subnet within that VPC with `map_public_ip_on_launch =
+   true` (the instance needs outbound internet to install k3s and pull
+   the image); pass `--subnet-id subnet-xxxx` too if that heuristic picks
+   wrong or finds nothing — check with:
+   ```bash
+   aws ec2 describe-subnets --filters Name=vpc-id,Values=vpc-xxxx --query 'Subnets[].{ID:SubnetId,AZ:AvailabilityZone,CIDR:CidrBlock,Public:MapPublicIpOnLaunch}' --output table
+   ```
+4. AWS credentials for `terraform apply` — this was written and
    `terraform validate`d in a sandboxed environment with no AWS access,
    so it has **not** been plan/apply-tested against a real account.
    Review it before running.
-4. Terraform >= 1.6, and the `hashicorp/aws` ~> 5.0 / `hashicorp/archive`
+5. Terraform >= 1.6, and the `hashicorp/aws` ~> 5.0 / `hashicorp/archive`
    ~> 2.4 providers (fetched automatically by `terraform init`).
 
 ## Usage
@@ -68,6 +84,8 @@ fully captured, not just what scrolled past in the terminal.
 ./deploy.sh --plan-only          # init + plan, stop before apply
 ./deploy.sh --auto-approve       # skip the "type yes" prompt
 ./deploy.sh --log-level TRACE    # even more verbose Terraform logging
+./deploy.sh --vpc-id vpc-xxxx    # use a specific VPC (see Prerequisites)
+./deploy.sh --subnet-id sub-xxxx # use a specific subnet within it
 ./deploy.sh --destroy            # tear it all down (always confirms)
 ./deploy.sh --force-destroy      # tear down with no prompt at all
 ```

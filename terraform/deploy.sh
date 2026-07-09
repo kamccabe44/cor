@@ -26,6 +26,12 @@ Usage: ./deploy.sh [options]
                      your data first — see ../k8s/README.md#7-backing-up-the-data.
   --log-level LVL   TF_LOG level: TRACE, DEBUG, INFO, WARN, ERROR.
                      Default: DEBUG.
+  --vpc-id ID       Existing VPC to launch into (sets TF_VAR_vpc_id).
+                     Needed if the account has no default VPC. List
+                     candidates with:
+                       aws ec2 describe-vpcs --query 'Vpcs[].{ID:VpcId,CIDR:CidrBlock,IsDefault:IsDefault,Name:Tags[?Key==`Name`]|[0].Value}' --output table
+  --subnet-id ID    Existing subnet within --vpc-id (sets TF_VAR_subnet_id).
+                     Leave unset to auto-pick a public subnet in that VPC.
   -h, --help        Show this help and exit.
 
 Every run writes two logs under ./deploy-logs/:
@@ -50,6 +56,16 @@ while [[ $# -gt 0 ]]; do
     --log-level)
       LOG_LEVEL="${2:-}"
       [[ -n "$LOG_LEVEL" ]] || { echo "--log-level needs a value" >&2; exit 1; }
+      shift
+      ;;
+    --vpc-id)
+      export TF_VAR_vpc_id="${2:-}"
+      [[ -n "$TF_VAR_vpc_id" ]] || { echo "--vpc-id needs a value" >&2; exit 1; }
+      shift
+      ;;
+    --subnet-id)
+      export TF_VAR_subnet_id="${2:-}"
+      [[ -n "$TF_VAR_subnet_id" ]] || { echo "--subnet-id needs a value" >&2; exit 1; }
       shift
       ;;
     -h|--help) usage; exit 0 ;;
@@ -85,6 +101,8 @@ log "==> COR Tracker Terraform deploy — action: $ACTION"
 log "    Script log:     $RUN_LOG"
 log "    Terraform log:  $TF_LOG_PATH (level $LOG_LEVEL)"
 log "    NOTE: the Terraform log will likely contain your auth_password in plaintext. Treat it as a secret."
+[[ -n "${TF_VAR_vpc_id:-}" ]] && log "    vpc_id override:    $TF_VAR_vpc_id"
+[[ -n "${TF_VAR_subnet_id:-}" ]] && log "    subnet_id override: $TF_VAR_subnet_id"
 
 # ---------- Preflight ----------
 

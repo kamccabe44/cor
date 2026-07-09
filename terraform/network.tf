@@ -1,7 +1,7 @@
 resource "aws_security_group" "cor" {
   name        = "cor-tracker"
   description = "COR Tracker EC2 instance"
-  vpc_id      = data.aws_vpc.default.id
+  vpc_id      = local.vpc_id
   tags        = var.tags
 }
 

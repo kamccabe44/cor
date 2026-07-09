@@ -22,6 +22,18 @@ variable "route53_zone_id" {
   default     = ""
 }
 
+variable "vpc_id" {
+  description = "Existing VPC to launch the instance in. Leave blank to use the account's default VPC — but many accounts don't have one anymore, in which case this must be set. List candidates with: aws ec2 describe-vpcs --query 'Vpcs[].{ID:VpcId,CIDR:CidrBlock,IsDefault:IsDefault,Name:Tags[?Key==`Name`]|[0].Value}' --output table"
+  type        = string
+  default     = ""
+}
+
+variable "subnet_id" {
+  description = "Existing subnet (within vpc_id) to launch the instance in. Must have a route to an Internet Gateway — the instance needs outbound internet to install k3s and pull the container image. Leave blank to auto-pick a subnet in vpc_id with map_public_ip_on_launch=true."
+  type        = string
+  default     = ""
+}
+
 variable "instance_type" {
   description = "EC2 instance size. t3.small (2GB RAM) is the practical minimum for k3s + the app container; t3.micro can be tight."
   type        = string
