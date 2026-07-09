@@ -1,0 +1,36 @@
+#!/bin/bash
+set -euxo pipefail
+
+# Runs once, on first boot only (cloud-init does not re-run this on
+# subsequent stop/start cycles). Everything it sets up lives on the root
+# EBS volume, so it survives the instance being stopped and restarted by
+# the idle-shutdown / auto-start Lambdas.
+
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -y
+apt-get install -y awscli jq
+
+curl -sfL https://get.k3s.io | sh -
+
+until k3s kubectl get nodes >/dev/null 2>&1; do
+  sleep 2
+done
+
+AUTH_PASSWORD="$(aws ssm get-parameter \
+  --name '${ssm_parameter_name}' \
+  --with-decryption \
+  --region '${aws_region}' \
+  --query 'Parameter.Value' \
+  --output text)"
+
+k3s kubectl create namespace cor-tracker --dry-run=client -o yaml | k3s kubectl apply -f -
+
+k3s kubectl -n cor-tracker create secret generic cor-auth \
+  --from-literal=password="$AUTH_PASSWORD" \
+  --dry-run=client -o yaml | k3s kubectl apply -f -
+
+cat <<'K8S_MANIFESTS' | k3s kubectl apply -f -
+${k8s_manifests}
+K8S_MANIFESTS
+
+k3s kubectl -n cor-tracker rollout status deployment/cor-tracker --timeout=300s

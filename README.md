@@ -54,7 +54,7 @@ npm run start
 
 There's no login by default in local dev — the whole point is a fast
 `npm install && npm run dev` loop. Set `AUTH_PASSWORD` to turn on a
-login page (a single shared password, checked by `middleware.ts` against
+login page (a single shared password, checked by `proxy.ts` against
 a signed session cookie) in front of every route except `/api/health`:
 
 ```bash
@@ -69,6 +69,12 @@ default whenever it's reachable from outside your machine — see
 
 See [`k8s/README.md`](k8s/README.md) for a Dockerfile + manifests to run
 this on a personal/dev k3s cluster, locally or on a single AWS Ubuntu box.
+
+For a hands-off AWS deployment that stops itself when idle and wakes back
+up on access, see [`terraform/README.md`](terraform/README.md) — it
+provisions that same EC2/k3s setup plus a Lambda that starts the
+instance and shows a splash page while it boots, and a scheduled Lambda
+that stops it again after 20 minutes of inactivity.
 
 ## Data model
 
