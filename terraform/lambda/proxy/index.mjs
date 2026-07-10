@@ -5,6 +5,7 @@ import {
   CreateTagsCommand,
 } from "@aws-sdk/client-ec2";
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
+import http from "node:http";
 
 const ec2 = new EC2Client({});
 const sns = new SNSClient({});
@@ -82,7 +83,6 @@ async function proxyToInstance(event) {
   const method = event.requestContext?.http?.method ?? "GET";
   const path = event.rawPath || "/";
   const qs = event.rawQueryString ? `?${event.rawQueryString}` : "";
-  const url = `http://${EC2_HOST}${path}${qs}`;
 
   const headers = {};
   for (const [key, value] of Object.entries(event.headers ?? {})) {
@@ -94,27 +94,50 @@ async function proxyToInstance(event) {
 
   let body;
   if (event.body && !["GET", "HEAD"].includes(method)) {
-    body = event.isBase64Encoded ? Buffer.from(event.body, "base64") : event.body;
+    body = event.isBase64Encoded ? Buffer.from(event.body, "base64") : Buffer.from(event.body);
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS);
-  try {
-    const resp = await fetch(url, { method, headers, body, redirect: "manual", signal: controller.signal });
-    const respHeaders = {};
-    resp.headers.forEach((value, key) => {
-      if (!HOP_BY_HOP_HEADERS.has(key.toLowerCase())) respHeaders[key] = value;
-    });
-    const buf = Buffer.from(await resp.arrayBuffer());
-    return {
-      statusCode: resp.status,
-      headers: respHeaders,
-      body: buf.toString("base64"),
-      isBase64Encoded: true,
-    };
-  } finally {
-    clearTimeout(timeout);
-  }
+  // Deliberately using node:http instead of fetch() here: fetch (undici)
+  // silently derives the wire-level Host header from the connection
+  // target URL and ignores a manually-set "host" entry in `headers`, so
+  // it can never address Traefik's host-based Ingress routing -- we
+  // connect to the instance's raw IP (EC2_HOST) but Traefik needs to see
+  // APP_HOST_HEADER to match the Ingress rule. node:http sends exactly
+  // the headers given, including Host.
+  return await new Promise((resolve, reject) => {
+    const req = http.request(
+      {
+        host: EC2_HOST,
+        port: 80,
+        path: `${path}${qs}`,
+        method,
+        headers,
+        timeout: PROXY_TIMEOUT_MS,
+      },
+      (res) => {
+        const chunks = [];
+        res.on("data", (chunk) => chunks.push(chunk));
+        res.on("end", () => {
+          const respHeaders = {};
+          for (const [key, value] of Object.entries(res.headers)) {
+            if (value === undefined || HOP_BY_HOP_HEADERS.has(key.toLowerCase())) continue;
+            respHeaders[key] = Array.isArray(value) ? value.join(", ") : value;
+          }
+          resolve({
+            statusCode: res.statusCode ?? 502,
+            headers: respHeaders,
+            body: Buffer.concat(chunks).toString("base64"),
+            isBase64Encoded: true,
+          });
+        });
+      }
+    );
+
+    req.on("timeout", () => req.destroy(new Error("Proxy request to instance timed out")));
+    req.on("error", reject);
+
+    req.end(body);
+  });
 }
 
 export const handler = async (event) => {
