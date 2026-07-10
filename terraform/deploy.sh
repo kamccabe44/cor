@@ -11,6 +11,19 @@ AUTO_APPROVE=0
 FORCE_DESTROY=0
 PLAN_ONLY=0
 LOG_LEVEL="DEBUG"
+AUTO_TFVARS_FILE="${SCRIPT_DIR}/local.auto.tfvars"
+
+# Remembers a value in local.auto.tfvars (gitignored -- matches *.tfvars)
+# so a later run -- especially --destroy -- doesn't need the same flag
+# typed again. Terraform loads *.auto.tfvars files on its own, no flag
+# needed on our end either.
+persist_tfvar() {
+  local name="$1" value="$2"
+  touch "$AUTO_TFVARS_FILE"
+  grep -v "^${name}[[:space:]]*=" "$AUTO_TFVARS_FILE" > "${AUTO_TFVARS_FILE}.tmp" 2>/dev/null || true
+  printf '%s = "%s"\n' "$name" "$value" >> "${AUTO_TFVARS_FILE}.tmp"
+  mv "${AUTO_TFVARS_FILE}.tmp" "$AUTO_TFVARS_FILE"
+}
 
 usage() {
   cat <<'EOF'
@@ -30,8 +43,12 @@ Usage: ./deploy.sh [options]
                      Needed if the account has no default VPC. List
                      candidates with:
                        aws ec2 describe-vpcs --query 'Vpcs[].{ID:VpcId,CIDR:CidrBlock,IsDefault:IsDefault,Name:Tags[?Key==`Name`]|[0].Value}' --output table
+                     Remembered in local.auto.tfvars after first use, so
+                     you don't need to pass it again on a later
+                     apply/destroy -- delete that file to forget it.
   --subnet-id ID    Existing subnet within --vpc-id (sets TF_VAR_subnet_id).
                      Leave unset to auto-pick a public subnet in that VPC.
+                     Also remembered in local.auto.tfvars.
   -h, --help        Show this help and exit.
 
 Every run writes two logs under ./deploy-logs/:
@@ -61,11 +78,13 @@ while [[ $# -gt 0 ]]; do
     --vpc-id)
       export TF_VAR_vpc_id="${2:-}"
       [[ -n "$TF_VAR_vpc_id" ]] || { echo "--vpc-id needs a value" >&2; exit 1; }
+      persist_tfvar vpc_id "$TF_VAR_vpc_id"
       shift
       ;;
     --subnet-id)
       export TF_VAR_subnet_id="${2:-}"
       [[ -n "$TF_VAR_subnet_id" ]] || { echo "--subnet-id needs a value" >&2; exit 1; }
+      persist_tfvar subnet_id "$TF_VAR_subnet_id"
       shift
       ;;
     -h|--help) usage; exit 0 ;;
@@ -101,8 +120,12 @@ log "==> COR Tracker Terraform deploy — action: $ACTION"
 log "    Script log:     $RUN_LOG"
 log "    Terraform log:  $TF_LOG_PATH (level $LOG_LEVEL)"
 log "    NOTE: the Terraform log will likely contain your auth_password in plaintext. Treat it as a secret."
-[[ -n "${TF_VAR_vpc_id:-}" ]] && log "    vpc_id override:    $TF_VAR_vpc_id"
-[[ -n "${TF_VAR_subnet_id:-}" ]] && log "    subnet_id override: $TF_VAR_subnet_id"
+[[ -n "${TF_VAR_vpc_id:-}" ]] && log "    vpc_id override:    $TF_VAR_vpc_id (this run's flag)"
+[[ -n "${TF_VAR_subnet_id:-}" ]] && log "    subnet_id override: $TF_VAR_subnet_id (this run's flag)"
+if [[ -f "$AUTO_TFVARS_FILE" ]]; then
+  log "    Also using remembered values from local.auto.tfvars:"
+  sed 's/^/      /' "$AUTO_TFVARS_FILE" | tee -a "$RUN_LOG"
+fi
 
 # ---------- Preflight ----------
 
