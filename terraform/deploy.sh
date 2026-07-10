@@ -49,6 +49,13 @@ Usage: ./deploy.sh [options]
   --subnet-id ID    Existing subnet within --vpc-id (sets TF_VAR_subnet_id).
                      Leave unset to auto-pick a public subnet in that VPC.
                      Also remembered in local.auto.tfvars.
+  --ssh-key-name N  Existing EC2 key pair name. Attaches it to the
+                     instance AND opens port 22 to it (both are gated on
+                     this one value -- an open port 22 with no key
+                     attached wouldn't let you in anyway). Leave unset to
+                     rely on SSM Session Manager only (no port 22, no
+                     key needed -- see the ssm_session_command output).
+                     Also remembered in local.auto.tfvars.
   -h, --help        Show this help and exit.
 
 Every run writes two logs under ./deploy-logs/:
@@ -87,6 +94,12 @@ while [[ $# -gt 0 ]]; do
       persist_tfvar subnet_id "$TF_VAR_subnet_id"
       shift
       ;;
+    --ssh-key-name)
+      export TF_VAR_ssh_key_name="${2:-}"
+      [[ -n "$TF_VAR_ssh_key_name" ]] || { echo "--ssh-key-name needs a value" >&2; exit 1; }
+      persist_tfvar ssh_key_name "$TF_VAR_ssh_key_name"
+      shift
+      ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
@@ -120,8 +133,9 @@ log "==> COR Tracker Terraform deploy — action: $ACTION"
 log "    Script log:     $RUN_LOG"
 log "    Terraform log:  $TF_LOG_PATH (level $LOG_LEVEL)"
 log "    NOTE: the Terraform log will likely contain your auth_password in plaintext. Treat it as a secret."
-[[ -n "${TF_VAR_vpc_id:-}" ]] && log "    vpc_id override:    $TF_VAR_vpc_id (this run's flag)"
-[[ -n "${TF_VAR_subnet_id:-}" ]] && log "    subnet_id override: $TF_VAR_subnet_id (this run's flag)"
+[[ -n "${TF_VAR_vpc_id:-}" ]] && log "    vpc_id override:      $TF_VAR_vpc_id (this run's flag)"
+[[ -n "${TF_VAR_subnet_id:-}" ]] && log "    subnet_id override:   $TF_VAR_subnet_id (this run's flag)"
+[[ -n "${TF_VAR_ssh_key_name:-}" ]] && log "    ssh_key_name override: $TF_VAR_ssh_key_name (this run's flag)"
 if [[ -f "$AUTO_TFVARS_FILE" ]]; then
   log "    Also using remembered values from local.auto.tfvars:"
   sed 's/^/      /' "$AUTO_TFVARS_FILE" | tee -a "$RUN_LOG"
