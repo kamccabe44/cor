@@ -134,6 +134,20 @@ resource "aws_iam_role_policy" "idle_stopper_ec2" {
   policy = data.aws_iam_policy_document.idle_stopper_ec2.json
 }
 
+data "aws_iam_policy_document" "idle_stopper_ssm" {
+  statement {
+    sid       = "CheckActiveSessions"
+    actions   = ["ssm:DescribeSessions"]
+    resources = ["*"] # DescribeSessions does not support resource-level restriction
+  }
+}
+
+resource "aws_iam_role_policy" "idle_stopper_ssm" {
+  name   = "ssm-describe-sessions"
+  role   = aws_iam_role.idle_stopper.id
+  policy = data.aws_iam_policy_document.idle_stopper_ssm.json
+}
+
 data "aws_iam_policy_document" "idle_stopper_sns" {
   statement {
     sid       = "PublishStopNotifications"

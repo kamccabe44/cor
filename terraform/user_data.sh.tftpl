@@ -94,6 +94,52 @@ chown -R ubuntu:ubuntu /home/ubuntu/.kube
 chmod 600 /home/ubuntu/.kube/config
 echo 'export KUBECONFIG=$HOME/.kube/config' >> /home/ubuntu/.bashrc
 
+# ---------- SSH activity check (systemd timer, every 2 min) ----------
+# The idle-stopper Lambda skips shutdown on its own if it sees an active
+# SSM Session Manager connection (the default, keyless access path), but
+# a raw SSH connection (only possible at all if ssh_key_name is set) isn't
+# visible to any AWS API. This periodically checks for one locally and, if
+# found, touches the same LastActive tag the proxy Lambda uses -- so an
+# open SSH session counts as activity through the exact same idle-timeout
+# logic, no separate code path needed on the Lambda side. A no-op if
+# ssh_key_name was never set, since port 22 is never open in that case.
+cat > /usr/local/bin/check-ssh-activity.sh <<'SSH_CHECK_SCRIPT'
+#!/bin/bash
+set -euo pipefail
+SSH_COUNT="$(ss -Ht state established '( sport = :22 )' 2>/dev/null | wc -l)"
+if [ "$SSH_COUNT" -gt 0 ]; then
+  TOKEN="$(curl -sX PUT http://169.254.169.254/latest/api/token -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')"
+  INSTANCE_ID="$(curl -sH "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id)"
+  aws ec2 create-tags --resources "$INSTANCE_ID" --tags "Key=LastActive,Value=$(date +%s%3N)" --region "$AWS_REGION"
+fi
+SSH_CHECK_SCRIPT
+chmod +x /usr/local/bin/check-ssh-activity.sh
+
+cat > /etc/systemd/system/ssh-activity-check.service <<UNIT
+[Unit]
+Description=Tag instance LastActive when an SSH session is active
+
+[Service]
+Type=oneshot
+Environment=AWS_REGION=${aws_region}
+ExecStart=/usr/local/bin/check-ssh-activity.sh
+UNIT
+
+cat > /etc/systemd/system/ssh-activity-check.timer <<'TIMER'
+[Unit]
+Description=Periodically check for active SSH sessions
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=2min
+
+[Install]
+WantedBy=timers.target
+TIMER
+
+systemctl daemon-reload
+systemctl enable --now ssh-activity-check.timer
+
 # ---------- Fetch the app's login password from SSM ----------
 AUTH_PASSWORD="$(aws ssm get-parameter \
   --name '${ssm_parameter_name}' \

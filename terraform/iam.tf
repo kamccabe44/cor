@@ -92,6 +92,20 @@ resource "aws_iam_role_policy" "ec2_pull_ecr" {
   policy = data.aws_iam_policy_document.ec2_pull_ecr.json
 }
 
+data "aws_iam_policy_document" "ec2_tag_self" {
+  statement {
+    sid       = "TagSelfForActivityTracking"
+    actions   = ["ec2:CreateTags"]
+    resources = [local.instance_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "ec2_tag_self" {
+  name   = "tag-self"
+  role   = aws_iam_role.ec2.id
+  policy = data.aws_iam_policy_document.ec2_tag_self.json
+}
+
 resource "aws_iam_instance_profile" "ec2" {
   name = "cor-tracker-ec2"
   role = aws_iam_role.ec2.name

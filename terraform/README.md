@@ -23,11 +23,34 @@ Browser → https://cor.1136mpco.com (Route53 alias, ACM cert)
                   the app), and tags the instance LastActive=<now>
 
 EventBridge (rate(5 min)) → Lambda "idle-stopper"
-        → if instance running and LastActive tag is older than
+        → active SSM Session Manager connection? → skip, check again
+          in 5 min
+        → else if instance running and LastActive tag is older than
           20 minutes → StopInstances, publish an SNS notification
 
 Both Lambdas → SNS topic "cor-tracker-notifications" → email
 ```
+
+## Won't stop out from under an active session
+
+Before stopping on idle, `idle-stopper` calls `ssm:DescribeSessions` and
+skips the stop entirely if there's an active Session Manager connection
+— that's the default, keyless way to get a shell
+(`terraform output ssm_session_command`), so it's checked directly via
+the API, no on-instance component needed.
+
+Raw SSH (only reachable at all if you set `ssh_key_name`) isn't visible
+to any AWS API, so it's covered differently: a systemd timer on the
+instance checks every 2 minutes for an established connection on port 22
+and, if it finds one, touches the same `LastActive` tag the proxy Lambda
+already uses. An open SSH session counts as activity through the exact
+same idle-timeout logic as everything else — no separate Lambda-side
+check needed for it. If `ssh_key_name` is never set, this timer just
+always finds nothing and is a no-op.
+
+Either way, this only *delays* the stop while the session is active —
+once you disconnect, the normal idle clock (from whenever `LastActive`
+was last touched) picks back up.
 
 ## Notifications
 
