@@ -85,6 +85,14 @@ async function proxyToInstance(event) {
   headers["x-forwarded-proto"] = "https";
   headers["x-forwarded-host"] = APP_HOST_HEADER;
 
+  // API Gateway HTTP APIs (payload format 2.0) split incoming Cookie
+  // headers out of event.headers entirely and hand them back as an
+  // array in event.cookies -- there is no "cookie" entry in
+  // event.headers to forward. Without rebuilding it here, every
+  // request reaches the app with no session cookie at all, so its
+  // auth check (proxy.ts) redirects to /login on every navigation.
+  if (event.cookies?.length) headers["cookie"] = event.cookies.join("; ");
+
   let body;
   if (event.body && !["GET", "HEAD"].includes(method)) {
     body = event.isBase64Encoded ? Buffer.from(event.body, "base64") : Buffer.from(event.body);
