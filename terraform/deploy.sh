@@ -109,7 +109,7 @@ log "    NOTE: the Terraform log will likely contain your auth_password in plain
 log "==> Checking required tools"
 command -v terraform >/dev/null 2>&1 || fail "terraform not found on PATH. Install: https://developer.hashicorp.com/terraform/install"
 command -v aws >/dev/null 2>&1 || fail "AWS CLI not found on PATH. Install: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html"
-log "    terraform: $(terraform version -json | grep -o '"terraform_version":"[^"]*"' | cut -d'"' -f4)"
+log "    terraform: $(terraform version -json | grep -o '"terraform_version": *"[^"]*"' | cut -d'"' -f4)"
 log "    aws-cli:   $(aws --version 2>&1)"
 
 log "==> Checking AWS credentials"
@@ -137,6 +137,15 @@ if [[ "$ACTION" == "apply" ]]; then
   if ! aws ecr describe-repositories --repository-names "$ECR_REPO_NAME" --region "$ECR_REGION" >>"$RUN_LOG" 2>&1; then
     fail "ECR repository '$ECR_REPO_NAME' not found in $ECR_REGION. This stack pulls the app image from ECR by default and expects it to already exist (it's managed separately so it survives a destroy of this stack). Create it first: cd ecr && terraform init && terraform apply -var ecr_repo_name=$ECR_REPO_NAME -var aws_region=$ECR_REGION -- then push an image from the repo root (./scripts/build_and_push.sh) before applying here."
   fi
+fi
+
+if [[ "$ACTION" == "destroy" && -z "${TF_VAR_auth_password:-}" ]]; then
+  # Terraform requires every variable without a default to have a value
+  # even for a -destroy plan (it still evaluates the full configuration,
+  # it just won't create anything) -- but the actual value is irrelevant
+  # here, nothing new gets built with it. Skip bothering the user for a
+  # password they're about to throw away.
+  export TF_VAR_auth_password="destroying"
 fi
 
 # ---------- Terraform ----------
