@@ -1,5 +1,5 @@
 image:
-  repository: ghcr.io/kamccabe44/cor
+  repository: 385357908943.dkr.ecr.us-east-1.amazonaws.com/cor
   tag: latest
   pullPolicy: Always
 
