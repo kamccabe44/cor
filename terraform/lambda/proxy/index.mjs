@@ -16,14 +16,7 @@ const APP_HOST_HEADER = process.env.APP_HOST_HEADER;
 const SNS_TOPIC_ARN = process.env.SNS_TOPIC_ARN;
 const PROXY_TIMEOUT_MS = 4000;
 
-const HOP_BY_HOP_HEADERS = new Set([
-  "connection",
-  "keep-alive",
-  "transfer-encoding",
-  "content-encoding",
-  "content-length",
-  "host",
-]);
+const HOP_BY_HOP_HEADERS = new Set(["connection", "keep-alive", "transfer-encoding", "content-length", "host"]);
 
 function splashPage(message, status = 200) {
   return {
