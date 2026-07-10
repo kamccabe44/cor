@@ -47,8 +47,14 @@ export const handler = async () => {
     return { stopped: false, skippedReason: "active-ssm-session" };
   }
 
+  // A missing or unparseable tag (e.g. no activity recorded yet on a
+  // freshly-launched instance) is treated as "just started," not "been
+  // idle since the epoch" -- the latter caused a real incident where a
+  // brand new instance got stopped by its first idle-check tick, mid
+  // way through user_data's first boot, because there was no tag yet.
   const lastActiveTag = instance.Tags?.find((t) => t.Key === "LastActive")?.Value;
-  const lastActive = lastActiveTag ? Number(lastActiveTag) : 0;
+  const parsed = Number(lastActiveTag);
+  const lastActive = Number.isFinite(parsed) ? parsed : Date.now();
   const idleMinutes = (Date.now() - lastActive) / 60000;
 
   if (idleMinutes < IDLE_MINUTES) {

@@ -28,8 +28,14 @@ resource "aws_instance" "cor" {
   }
 
   tags = merge(var.tags, {
-    Name       = "cor-tracker"
-    LastActive = tostring(timestamp())
+    Name = "cor-tracker"
+    # No initial LastActive here on purpose -- Terraform's timestamp()
+    # returns RFC3339, not the epoch-milliseconds format the Lambdas and
+    # the SSH-activity-check script use (Date.now() / `date +%s%3N`), so
+    # a value set here couldn't be parsed as a number by idle-stopper
+    # anyway. It reads a missing tag as "just started" (see
+    # lambda/idle-stopper/index.mjs) and gives it the normal idle grace
+    # period instead.
   })
 
   lifecycle {
