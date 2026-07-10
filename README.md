@@ -123,6 +123,13 @@ WAWF, GFP, CENTCOM/contingency-specific considerations). It's background
 orientation, not legal advice — your designation letter, contract clauses,
 and command policy always govern.
 
+## Related: Contract Ratings
+
+`contract-ratings/` is a separate, slimmer companion app in this same
+repo — contractors and contracts with 1–5 star ratings, backed by
+DynamoDB/Lambda/API Gateway/Cognito instead of this app's stack. It's
+independently deployed; see `contract-ratings/README.md`.
+
 ## Notes on scope and honesty about testing
 
 - Server Actions handle all create/update/delete operations with
