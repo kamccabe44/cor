@@ -19,7 +19,7 @@ export default function ContractsPage() {
           <Link href="/import" className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
             Import from USASpending
           </Link>
-          <Link href="/contracts/new" className="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">
+          <Link href="/contracts/new" className="rounded-md bg-olive-700 px-4 py-2 text-sm font-semibold text-white hover:bg-olive-800">
             Add Contract
           </Link>
         </div>
@@ -27,7 +27,7 @@ export default function ContractsPage() {
 
       {list.length === 0 ? (
         <div className="card p-8 text-center text-sm text-slate-500">
-          No contracts yet. <Link href="/contracts/new" className="text-blue-700 hover:underline">Add your first one</Link>.
+          No contracts yet. <Link href="/contracts/new" className="text-olive-700 hover:underline">Add your first one</Link>.
         </div>
       ) : (
         <div className="card overflow-x-auto">
@@ -47,7 +47,7 @@ export default function ContractsPage() {
               {list.map((c) => (
                 <tr key={c.id}>
                   <td>
-                    <Link href={`/contracts/${c.id}`} className="font-medium text-blue-700 hover:underline">
+                    <Link href={`/contracts/${c.id}`} className="font-medium text-olive-700 hover:underline">
                       {c.contract_number}
                     </Link>
                     {c.task_order_number && <div className="text-xs text-slate-500">TO {c.task_order_number}</div>}

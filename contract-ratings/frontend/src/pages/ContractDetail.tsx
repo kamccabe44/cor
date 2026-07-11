@@ -21,8 +21,8 @@ export function ContractDetail() {
       .catch((err) => setError(err.message));
   }, [id]);
 
-  if (error) return <p style={{ color: "crimson" }}>{error}</p>;
-  if (!contract) return <p>Loading…</p>;
+  if (error) return <p className="error-banner">{error}</p>;
+  if (!contract) return <p className="empty-state">Loading…</p>;
 
   return (
     <div>
@@ -32,22 +32,25 @@ export function ContractDetail() {
       <h1>
         {contract.contractNumber} — {contract.title}
       </h1>
-      {contractor && (
-        <p>
-          Contractor: <Link to={`/contractors/${contractor.id}`}>{contractor.name}</Link>
-        </p>
-      )}
-      {contract.agency && <p>Agency: {contract.agency}</p>}
-      {contract.awardDate && <p>Award date: {contract.awardDate}</p>}
+      <p className="subtitle">
+        {contractor && (
+          <>
+            Contractor: <Link to={`/contractors/${contractor.id}`}>{contractor.name}</Link>
+          </>
+        )}
+        {contract.agency && <> · Agency: {contract.agency}</>}
+        {contract.awardDate && <> · Award date: {contract.awardDate}</>}
+      </p>
       {contract.contractValue != null && <p>Value: ${contract.contractValue.toLocaleString()}</p>}
       {contract.description && <p>{contract.description}</p>}
 
-      <div style={{ margin: "1rem 0" }}>
-        <StarRatingDisplay avg={contract.avgRating} count={contract.ratingCount} />
-      </div>
-
-      <div style={{ margin: "1rem 0" }}>
-        <p>Your rating:</p>
+      <div className="card" style={{ padding: "1.25rem" }}>
+        <div style={{ marginBottom: "0.75rem" }}>
+          <StarRatingDisplay avg={contract.avgRating} count={contract.ratingCount} />
+        </div>
+        <div className="meta" style={{ marginBottom: "0.35rem" }}>
+          Your rating:
+        </div>
         <StarRatingInput
           initial={contract.myRating?.stars ?? 0}
           onSubmit={async (stars) => {

@@ -17,8 +17,8 @@ export function ContractorDetail() {
 
   useEffect(refresh, [id]);
 
-  if (error) return <p style={{ color: "crimson" }}>{error}</p>;
-  if (!contractor) return <p>Loading…</p>;
+  if (error) return <p className="error-banner">{error}</p>;
+  if (!contractor) return <p className="empty-state">Loading…</p>;
 
   return (
     <div>
@@ -26,16 +26,20 @@ export function ContractorDetail() {
         <Link to="/contractors">&larr; Contractors</Link>
       </p>
       <h1>{contractor.name}</h1>
-      {contractor.cageCode && <p>CAGE code: {contractor.cageCode}</p>}
-      {contractor.ueiSam && <p>UEI: {contractor.ueiSam}</p>}
+      <p className="subtitle">
+        {contractor.cageCode && <>CAGE {contractor.cageCode}</>}
+        {contractor.cageCode && contractor.ueiSam && " · "}
+        {contractor.ueiSam && <>UEI {contractor.ueiSam}</>}
+      </p>
       {contractor.notes && <p>{contractor.notes}</p>}
 
-      <div style={{ margin: "1rem 0" }}>
-        <StarRatingDisplay avg={contractor.avgRating} count={contractor.ratingCount} />
-      </div>
-
-      <div style={{ margin: "1rem 0" }}>
-        <p>Your rating:</p>
+      <div className="card" style={{ padding: "1.25rem", marginBottom: "1.5rem" }}>
+        <div style={{ marginBottom: "0.75rem" }}>
+          <StarRatingDisplay avg={contractor.avgRating} count={contractor.ratingCount} />
+        </div>
+        <div className="meta" style={{ marginBottom: "0.35rem" }}>
+          Your rating:
+        </div>
         <StarRatingInput
           initial={contractor.myRating?.stars ?? 0}
           onSubmit={async (stars) => {
@@ -46,19 +50,21 @@ export function ContractorDetail() {
       </div>
 
       <h2>Contracts with this contractor</h2>
-      <ul style={{ listStyle: "none", padding: 0 }}>
-        {contracts.map((c) => (
-          <li key={c.id} style={{ padding: "0.5rem 0", borderBottom: "1px solid #eee" }}>
-            <Link to={`/contracts/${c.id}`}>
-              {c.contractNumber} — {c.title}
-            </Link>
-            <div>
-              <StarRatingDisplay avg={c.avgRating} count={c.ratingCount} />
-            </div>
-          </li>
-        ))}
-        {contracts.length === 0 && <p>No contracts recorded for this contractor yet.</p>}
-      </ul>
+      <div className="card" style={{ padding: contracts.length > 0 ? "0.25rem 1rem" : "1.5rem" }}>
+        {contracts.length === 0 && <p className="empty-state">No contracts recorded for this contractor yet.</p>}
+        <ul className="entity-list">
+          {contracts.map((c) => (
+            <li key={c.id}>
+              <Link to={`/contracts/${c.id}`} className="entity-name">
+                {c.contractNumber} — {c.title}
+              </Link>
+              <div>
+                <StarRatingDisplay avg={c.avgRating} count={c.ratingCount} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { api, type Contractor } from "../api";
 import { StarRatingDisplay } from "../components/StarRating";
+import { UsersIcon, StarFilledIcon } from "../components/Icons";
 
 export function Contractors() {
   const [items, setItems] = useState<Contractor[] | null>(null);
@@ -37,36 +38,65 @@ export function Contractors() {
     }
   }
 
+  const rated = items?.filter((c) => c.ratingCount > 0) ?? [];
+  const overallAvg = rated.length > 0 ? rated.reduce((s, c) => s + c.avgRating, 0) / rated.length : 0;
+
   return (
     <div>
       <h1>Contractors</h1>
+      <p className="subtitle">Contractors on file and their aggregate ratings.</p>
 
-      <form onSubmit={onCreate} style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1.5rem" }}>
+      {items && (
+        <div className="stat-row">
+          <div className="card stat-card">
+            <div className="stat-icon">
+              <UsersIcon style={{ width: "1.4rem", height: "1.4rem" }} />
+            </div>
+            <div>
+              <div className="stat-value">{items.length}</div>
+              <div className="stat-label">Total Contractors</div>
+            </div>
+          </div>
+          <div className="card stat-card">
+            <div className="stat-icon">
+              <StarFilledIcon style={{ width: "1.4rem", height: "1.4rem" }} />
+            </div>
+            <div>
+              <div className="stat-value">{rated.length > 0 ? overallAvg.toFixed(1) : "—"}</div>
+              <div className="stat-label">Overall Avg Rating</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={onCreate} className="form-row">
         <input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} required />
         <input placeholder="CAGE code" value={cageCode} onChange={(e) => setCageCode(e.target.value)} />
         <input placeholder="UEI (SAM.gov)" value={ueiSam} onChange={(e) => setUeiSam(e.target.value)} />
-        <button type="submit" disabled={creating}>
-          {creating ? "Adding…" : "Add contractor"}
+        <button type="submit" className="btn btn-primary" disabled={creating}>
+          {creating ? "Adding…" : "+ Add Contractor"}
         </button>
       </form>
 
-      {error && <p style={{ color: "crimson" }}>{error}</p>}
-      {!items && !error && <p>Loading…</p>}
-      {items && items.length === 0 && <p>No contractors yet.</p>}
+      {error && <p className="error-banner">{error}</p>}
+      {!items && !error && <p className="empty-state">Loading…</p>}
 
-      <ul style={{ listStyle: "none", padding: 0 }}>
-        {items?.map((c) => (
-          <li key={c.id} style={{ padding: "0.75rem 0", borderBottom: "1px solid #eee" }}>
-            <Link to={`/contractors/${c.id}`} style={{ fontWeight: 600 }}>
-              {c.name}
-            </Link>
-            {c.cageCode && <span style={{ color: "#666" }}> · CAGE {c.cageCode}</span>}
-            <div>
-              <StarRatingDisplay avg={c.avgRating} count={c.ratingCount} />
-            </div>
-          </li>
-        ))}
-      </ul>
+      <div className="card" style={{ padding: items && items.length > 0 ? "0.25rem 1rem" : "1.5rem" }}>
+        {items && items.length === 0 && <p className="empty-state">No contractors yet.</p>}
+        <ul className="entity-list">
+          {items?.map((c) => (
+            <li key={c.id}>
+              <Link to={`/contractors/${c.id}`} className="entity-name">
+                {c.name}
+              </Link>
+              {c.cageCode && <span className="meta"> · CAGE {c.cageCode}</span>}
+              <div>
+                <StarRatingDisplay avg={c.avgRating} count={c.ratingCount} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

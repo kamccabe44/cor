@@ -70,12 +70,12 @@ export default function ImportPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="e.g. W91QF1, or vendor name, or 'dining facility CENTCOM'"
-          className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-olive-500 focus:outline-none focus:ring-1 focus:ring-olive-500"
         />
         <button
           type="submit"
           disabled={loading}
-          className="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50"
+          className="rounded-md bg-olive-700 px-4 py-2 text-sm font-semibold text-white hover:bg-olive-800 disabled:opacity-50"
         >
           {loading ? "Searching…" : "Search"}
         </button>
@@ -122,7 +122,7 @@ export default function ImportPage() {
                     <button
                       onClick={() => doImport(r.awardId)}
                       disabled={(isPending && importingId === r.awardId) || !r.awardId}
-                      className="rounded-md border border-blue-300 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+                      className="rounded-md border border-olive-300 bg-olive-50 px-3 py-1 text-xs font-semibold text-olive-700 hover:bg-olive-100 disabled:opacity-50"
                     >
                       {isPending && importingId === r.awardId ? "Importing…" : "Import"}
                     </button>

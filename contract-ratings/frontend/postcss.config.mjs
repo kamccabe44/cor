@@ -3,4 +3,5 @@
 // app's Tailwind setup, whose plugin is only installed in the repo root's
 // node_modules, not here). This frontend doesn't use PostCSS/Tailwind at
 // all, so an empty local config just stops that upward search.
-export default {};
+const config = {};
+export default config;

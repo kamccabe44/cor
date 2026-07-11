@@ -1,5 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate, Link } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./AuthContext";
+import { ShieldIcon } from "./components/Icons";
 import { Login } from "./pages/Login";
 import { Contractors } from "./pages/Contractors";
 import { ContractorDetail } from "./pages/ContractorDetail";
@@ -13,19 +14,43 @@ function RequireAuth({ children }: { children: JSX.Element }) {
   return children;
 }
 
+function NavLinks() {
+  const { pathname } = useLocation();
+  const links = [
+    { to: "/contractors", label: "Contractors" },
+    { to: "/contracts", label: "Contracts" },
+  ];
+  return (
+    <nav className="app-nav">
+      {links.map((l) => (
+        <Link key={l.to} to={l.to} className={pathname.startsWith(l.to) ? "active" : undefined}>
+          {l.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
 function Shell({ children }: { children: JSX.Element }) {
   const { signedIn, displayName, signOut } = useAuth();
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto", padding: "1rem", fontFamily: "system-ui, sans-serif" }}>
+    <div className="app-shell">
       {signedIn && (
-        <nav style={{ display: "flex", gap: "1rem", alignItems: "center", marginBottom: "1.5rem" }}>
-          <Link to="/contractors">Contractors</Link>
-          <Link to="/contracts">Contracts</Link>
-          <span style={{ marginLeft: "auto", color: "#666", fontSize: "0.9em" }}>{displayName}</span>
-          <button onClick={signOut}>Log out</button>
-        </nav>
+        <header className="app-header">
+          <Link to="/contractors" className="brand">
+            <ShieldIcon style={{ width: "1.4rem", height: "1.4rem" }} />
+            Contract Ratings
+          </Link>
+          <NavLinks />
+          <div className="header-spacer">
+            <span className="header-user">{displayName}</span>
+            <button className="btn btn-outline" onClick={signOut}>
+              Log out
+            </button>
+          </div>
+        </header>
       )}
-      {children}
+      <main className="app-main">{children}</main>
     </div>
   );
 }

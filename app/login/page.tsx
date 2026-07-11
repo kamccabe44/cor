@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { authEnabled, checkPassword, createSessionToken, verifySessionToken, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
+import { ShieldIcon } from "@/components/Icons";
 
 async function login(formData: FormData) {
   "use server";
@@ -37,7 +38,10 @@ export default async function LoginPage({
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-sm">
         <div className="card p-6">
-          <h1 className="mb-1 text-xl font-semibold text-slate-900">COR Contract Tracker</h1>
+          <div className="mb-4 flex items-center gap-2 text-olive-800">
+            <ShieldIcon className="h-7 w-7" />
+            <h1 className="text-xl font-bold">COR Contract Tracker</h1>
+          </div>
           <p className="mb-4 text-sm text-slate-500">Enter the shared password to continue.</p>
           {params.error && (
             <p className="mb-3 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -52,11 +56,11 @@ export default async function LoginPage({
               autoFocus
               required
               placeholder="Password"
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-olive-500 focus:outline-none focus:ring-1 focus:ring-olive-500"
             />
             <button
               type="submit"
-              className="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+              className="rounded-md bg-olive-700 px-4 py-2 text-sm font-semibold text-white hover:bg-olive-800"
             >
               Log in
             </button>

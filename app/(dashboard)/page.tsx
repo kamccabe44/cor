@@ -3,6 +3,7 @@ import { getDashboardData } from "@/lib/dashboard";
 import { contracts as contractsRepo } from "@/lib/data";
 import StatCard from "@/components/StatCard";
 import Badge from "@/components/Badge";
+import { DocumentIcon, CurrencyIcon, GaugeIcon } from "@/components/Icons";
 import { fmtCurrency, fmtDate, daysUntil } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +23,7 @@ export default function DashboardPage() {
           straight from USASpending.gov to get started.
         </p>
         <div className="mt-6 flex justify-center gap-3">
-          <Link href="/contracts/new" className="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">
+          <Link href="/contracts/new" className="rounded-md bg-olive-700 px-4 py-2 text-sm font-semibold text-white hover:bg-olive-800">
             Add a contract
           </Link>
           <Link href="/import" className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
@@ -30,7 +31,7 @@ export default function DashboardPage() {
           </Link>
         </div>
         <div className="mt-8">
-          <Link href="/profile" className="text-sm text-blue-700 hover:underline">
+          <Link href="/profile" className="text-sm text-olive-700 hover:underline">
             Set up your COR profile first &rarr;
           </Link>
         </div>
@@ -46,23 +47,32 @@ export default function DashboardPage() {
       </div>
 
       {data.corCertExpiringSoon && (
-        <div className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Your COR certification is expiring within 60 days.{" "}
-          <Link href="/profile" className="font-semibold underline">
-            Review your COR profile
-          </Link>{" "}
-          and coordinate re-certification with your Contracting Officer.
+        <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <span aria-hidden className="mt-0.5 text-base">&#9888;</span>
+          <span>
+            <strong className="font-bold">COR CERTIFICATION EXPIRING:</strong> your certification is expiring
+            within 60 days.{" "}
+            <Link href="/profile" className="font-semibold underline">
+              Review your COR profile
+            </Link>{" "}
+            and coordinate re-certification with your Contracting Officer.
+          </span>
         </div>
       )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Active / Option Contracts" value={String(data.activeContractCount)} />
-        <StatCard label="Total Obligated" value={fmtCurrency(data.totalObligated)} />
-        <StatCard label="Total Invoiced" value={fmtCurrency(data.totalInvoiced)} />
+        <StatCard
+          label="Active / Option Contracts"
+          value={String(data.activeContractCount)}
+          icon={<DocumentIcon className="h-full w-full" />}
+        />
+        <StatCard label="Total Obligated" value={fmtCurrency(data.totalObligated)} icon={<CurrencyIcon className="h-full w-full" />} />
+        <StatCard label="Total Invoiced" value={fmtCurrency(data.totalInvoiced)} icon={<CurrencyIcon className="h-full w-full" />} />
         <StatCard
           label="Funds Utilized"
           value={`${utilizationPct}%`}
           tone={utilizationPct >= 90 ? "danger" : utilizationPct >= 75 ? "warn" : "good"}
+          icon={<GaugeIcon className="h-full w-full" />}
         />
       </div>
 

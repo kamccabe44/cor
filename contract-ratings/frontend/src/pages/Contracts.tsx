@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { api, type Contract, type Contractor } from "../api";
 import { StarRatingDisplay } from "../components/StarRating";
+import { DocumentIcon } from "../components/Icons";
 
 export function Contracts() {
   const [items, setItems] = useState<Contract[] | null>(null);
@@ -45,8 +46,23 @@ export function Contracts() {
   return (
     <div>
       <h1>Contracts</h1>
+      <p className="subtitle">Contracts on file and their aggregate ratings.</p>
 
-      <form onSubmit={onCreate} style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1.5rem" }}>
+      {items && (
+        <div className="stat-row">
+          <div className="card stat-card">
+            <div className="stat-icon">
+              <DocumentIcon style={{ width: "1.4rem", height: "1.4rem" }} />
+            </div>
+            <div>
+              <div className="stat-value">{items.length}</div>
+              <div className="stat-label">Total Contracts</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={onCreate} className="form-row">
         <input
           placeholder="Contract number"
           value={contractNumber}
@@ -65,29 +81,47 @@ export function Contracts() {
           ))}
         </select>
         <input placeholder="Agency" value={agency} onChange={(e) => setAgency(e.target.value)} />
-        <button type="submit" disabled={creating || contractors.length === 0}>
-          {creating ? "Adding…" : "Add contract"}
+        <button type="submit" className="btn btn-primary" disabled={creating || contractors.length === 0}>
+          {creating ? "Adding…" : "+ Add Contract"}
         </button>
       </form>
-      {contractors.length === 0 && <p style={{ color: "#666" }}>Add a contractor first before adding a contract.</p>}
+      {contractors.length === 0 && <p className="meta">Add a contractor first before adding a contract.</p>}
 
-      {error && <p style={{ color: "crimson" }}>{error}</p>}
-      {!items && !error && <p>Loading…</p>}
-      {items && items.length === 0 && <p>No contracts yet.</p>}
+      {error && <p className="error-banner">{error}</p>}
+      {!items && !error && <p className="empty-state">Loading…</p>}
 
-      <ul style={{ listStyle: "none", padding: 0 }}>
-        {items?.map((c) => (
-          <li key={c.id} style={{ padding: "0.75rem 0", borderBottom: "1px solid #eee" }}>
-            <Link to={`/contracts/${c.id}`} style={{ fontWeight: 600 }}>
-              {c.contractNumber} — {c.title}
-            </Link>
-            {c.agency && <span style={{ color: "#666" }}> · {c.agency}</span>}
-            <div>
-              <StarRatingDisplay avg={c.avgRating} count={c.ratingCount} />
-            </div>
-          </li>
-        ))}
-      </ul>
+      {items && items.length > 0 ? (
+        <div className="card" style={{ overflowX: "auto" }}>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Contract #</th>
+                <th>Title</th>
+                <th>Agency</th>
+                <th>Rating</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((c) => (
+                <tr key={c.id}>
+                  <td>
+                    <Link to={`/contracts/${c.id}`} className="entity-name">
+                      {c.contractNumber}
+                    </Link>
+                  </td>
+                  <td>{c.title}</td>
+                  <td>{c.agency || "—"}</td>
+                  <td>
+                    <StarRatingDisplay avg={c.avgRating} count={c.ratingCount} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        items && <p className="empty-state">No contracts yet.</p>
+      )}
     </div>
   );
 }

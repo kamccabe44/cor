@@ -20,7 +20,7 @@ export default function Section({
       </div>
       <div className="overflow-x-auto">{children}</div>
       <details className="mt-4 rounded-md border border-dashed border-slate-300 p-3">
-        <summary className="cursor-pointer text-sm font-medium text-blue-700">+ Add new entry</summary>
+        <summary className="cursor-pointer text-sm font-medium text-olive-700">+ Add new entry</summary>
         <div className="mt-3">{addForm}</div>
       </details>
     </section>

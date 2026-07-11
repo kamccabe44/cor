@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useAuth } from "../AuthContext";
+import { ShieldIcon } from "../components/Icons";
 
 export function Login() {
   const { signIn } = useAuth();
@@ -23,29 +24,42 @@ export function Login() {
 
   return (
     <div style={{ maxWidth: 360, margin: "4rem auto" }}>
-      <h1>Contract Ratings</h1>
-      <p style={{ color: "#666" }}>Sign in with your existing account.</p>
-      <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-        <input
-          type="text"
-          placeholder="Username or email"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          autoFocus
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        {error && <p style={{ color: "crimson" }}>{error}</p>}
-        <button type="submit" disabled={submitting}>
-          {submitting ? "Signing in…" : "Sign in"}
-        </button>
-      </form>
+      <div className="card" style={{ padding: "1.5rem" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            color: "var(--olive-800)",
+            marginBottom: "0.75rem",
+          }}
+        >
+          <ShieldIcon style={{ width: "1.75rem", height: "1.75rem" }} />
+          <h1 style={{ margin: 0 }}>Contract Ratings</h1>
+        </div>
+        <p className="subtitle">Sign in with your existing account.</p>
+        <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          <input
+            type="text"
+            placeholder="Username or email"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            autoFocus
+            required
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          {error && <p className="error-banner">{error}</p>}
+          <button type="submit" className="btn btn-primary" disabled={submitting}>
+            {submitting ? "Signing in…" : "Sign in"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

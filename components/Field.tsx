@@ -30,7 +30,7 @@ export function Field({
         required={required}
         placeholder={placeholder}
         step={step}
-        className="rounded-md border border-slate-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        className="rounded-md border border-slate-300 px-3 py-1.5 text-sm shadow-sm focus:border-olive-500 focus:outline-none focus:ring-1 focus:ring-olive-500"
       />
     </label>
   );
@@ -54,7 +54,7 @@ export function TextAreaField({
         name={name}
         defaultValue={defaultValue ?? ""}
         rows={rows}
-        className="rounded-md border border-slate-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        className="rounded-md border border-slate-300 px-3 py-1.5 text-sm shadow-sm focus:border-olive-500 focus:outline-none focus:ring-1 focus:ring-olive-500"
       />
     </label>
   );
@@ -84,7 +84,7 @@ export function SelectField({
         name={name}
         defaultValue={defaultValue ?? normalized[0]?.value}
         required={required}
-        className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-olive-500 focus:outline-none focus:ring-1 focus:ring-olive-500"
       >
         {normalized.map((o) => (
           <option key={o.value} value={o.value}>
@@ -111,7 +111,7 @@ export function CheckboxField({
         type="checkbox"
         name={name}
         defaultChecked={defaultChecked}
-        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+        className="h-4 w-4 rounded border-slate-300 text-olive-600 focus:ring-olive-500"
       />
       {label}
     </label>
@@ -126,7 +126,7 @@ export function SubmitButton({ children }: { children: ReactNode }) {
   return (
     <button
       type="submit"
-      className="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800"
+      className="rounded-md bg-olive-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-olive-800"
     >
       {children}
     </button>

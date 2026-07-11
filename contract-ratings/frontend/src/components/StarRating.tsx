@@ -4,13 +4,11 @@ export function StarRatingDisplay({ avg, count }: { avg: number; count: number }
   return (
     <span title={`${avg.toFixed(1)} average over ${count} rating${count === 1 ? "" : "s"}`}>
       {[1, 2, 3, 4, 5].map((n) => (
-        <span key={n} style={{ color: n <= Math.round(avg) ? "#f5a623" : "#ccc" }}>
+        <span key={n} style={{ color: n <= Math.round(avg) ? "var(--amber-500)" : "var(--slate-300)" }}>
           ★
         </span>
       ))}{" "}
-      <span style={{ color: "#666", fontSize: "0.85em" }}>
-        {count > 0 ? `${avg.toFixed(1)} (${count})` : "No ratings yet"}
-      </span>
+      <span className="meta">{count > 0 ? `${avg.toFixed(1)} (${count})` : "No ratings yet"}</span>
     </span>
   );
 }
@@ -44,7 +42,7 @@ export function StarRatingInput({
           onClick={() => !saving && pick(n)}
           onMouseEnter={() => setHover(n)}
           onMouseLeave={() => setHover(0)}
-          style={{ color: n <= (hover || value) ? "#f5a623" : "#ccc", fontSize: "1.4em" }}
+          style={{ color: n <= (hover || value) ? "var(--amber-500)" : "var(--slate-300)", fontSize: "1.4em" }}
         >
           ★
         </span>
