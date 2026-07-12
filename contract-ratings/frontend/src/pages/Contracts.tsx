@@ -4,6 +4,8 @@ import { api, type Contract } from "../api";
 import { StarRatingDisplay } from "../components/StarRating";
 import { DocumentIcon } from "../components/Icons";
 
+type SortKey = "contractNumber" | "title" | "contractStart" | "contractEnd" | "avgRating";
+
 export function Contracts() {
   const [items, setItems] = useState<Contract[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -14,10 +16,24 @@ export function Contracts() {
   const [notes, setNotes] = useState("");
   const [creating, setCreating] = useState(false);
 
+  const [sortKey, setSortKey] = useState<SortKey>("contractStart");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [startFilter, setStartFilter] = useState("");
+  const [endFilter, setEndFilter] = useState("");
+
+  function toggleSort(key: SortKey) {
+    if (key === sortKey) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  }
+
   function refresh() {
     api
       .listContracts()
-      .then((res) => setItems(res.items.sort((a, b) => b.createdAt.localeCompare(a.createdAt))))
+      .then((res) => setItems(res.items))
       .catch((err) => setError(err.message));
   }
 
@@ -40,6 +56,31 @@ export function Contracts() {
       setCreating(false);
     }
   }
+
+  function compare(a: Contract, b: Contract) {
+    if (sortKey === "avgRating") {
+      return sortDir === "asc" ? a.avgRating - b.avgRating : b.avgRating - a.avgRating;
+    }
+    const av = String(a[sortKey] ?? "");
+    const bv = String(b[sortKey] ?? "");
+    // Empty values always sort to the bottom regardless of direction so
+    // undated contracts don't crowd the top of the date columns.
+    if (av === "" && bv !== "") return 1;
+    if (bv === "" && av !== "") return -1;
+    const r = av.localeCompare(bv, undefined, { numeric: true, sensitivity: "base" });
+    return sortDir === "asc" ? r : -r;
+  }
+
+  const rows = (items ?? [])
+    .filter(
+      (c) =>
+        (c.contractStart || "").toLowerCase().includes(startFilter.toLowerCase()) &&
+        (c.contractEnd || "").toLowerCase().includes(endFilter.toLowerCase())
+    )
+    .sort(compare);
+
+  const arrow = (key: SortKey) => (sortKey === key ? (sortDir === "asc" ? " ▲" : " ▼") : "");
+  const sortableThStyle = { cursor: "pointer", userSelect: "none" as const };
 
   return (
     <div>
@@ -94,14 +135,46 @@ export function Contracts() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Contract #</th>
-                <th>Title</th>
-                <th>Period</th>
-                <th>Rating</th>
+                <th style={sortableThStyle} onClick={() => toggleSort("contractNumber")}>
+                  Contract #{arrow("contractNumber")}
+                </th>
+                <th style={sortableThStyle} onClick={() => toggleSort("title")}>
+                  Title{arrow("title")}
+                </th>
+                <th style={sortableThStyle} onClick={() => toggleSort("contractStart")}>
+                  Start{arrow("contractStart")}
+                </th>
+                <th style={sortableThStyle} onClick={() => toggleSort("contractEnd")}>
+                  End{arrow("contractEnd")}
+                </th>
+                <th style={sortableThStyle} onClick={() => toggleSort("avgRating")}>
+                  Rating{arrow("avgRating")}
+                </th>
+              </tr>
+              <tr>
+                <th />
+                <th />
+                <th>
+                  <input
+                    value={startFilter}
+                    onChange={(e) => setStartFilter(e.target.value)}
+                    placeholder="Filter start…"
+                    style={{ width: "110px", padding: "0.25rem 0.4rem", fontWeight: 400 }}
+                  />
+                </th>
+                <th>
+                  <input
+                    value={endFilter}
+                    onChange={(e) => setEndFilter(e.target.value)}
+                    placeholder="Filter end…"
+                    style={{ width: "110px", padding: "0.25rem 0.4rem", fontWeight: 400 }}
+                  />
+                </th>
+                <th />
               </tr>
             </thead>
             <tbody>
-              {items.map((c) => (
+              {rows.map((c) => (
                 <tr key={c.id}>
                   <td>
                     <Link to={`/contracts/${c.id}`} className="entity-name">
@@ -109,14 +182,20 @@ export function Contracts() {
                     </Link>
                   </td>
                   <td>{c.title}</td>
-                  <td>
-                    {c.contractStart || c.contractEnd ? `${c.contractStart || "—"} → ${c.contractEnd || "—"}` : "—"}
-                  </td>
+                  <td>{c.contractStart || "—"}</td>
+                  <td>{c.contractEnd || "—"}</td>
                   <td>
                     <StarRatingDisplay avg={c.avgRating} count={c.ratingCount} />
                   </td>
                 </tr>
               ))}
+              {rows.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="empty-state" style={{ padding: "1rem" }}>
+                    No contracts match the filters.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
