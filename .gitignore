@@ -43,3 +43,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# terraform state -- can contain secrets, never commit, from any directory
+*.tfstate
+*.tfstate.*
+.terraform/

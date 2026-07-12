@@ -37,8 +37,8 @@ data "aws_iam_policy_document" "api_dynamodb" {
     ]
     resources = [
       aws_dynamodb_table.contractors.arn,
+      "${aws_dynamodb_table.contractors.arn}/index/*",
       aws_dynamodb_table.contracts.arn,
-      "${aws_dynamodb_table.contracts.arn}/index/*",
       aws_dynamodb_table.ratings.arn,
     ]
   }

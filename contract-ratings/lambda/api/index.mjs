@@ -121,7 +121,7 @@ async function getContractor(id, event) {
 }
 
 async function createContractor(event, body, contractId) {
-  if (!body.company || typeof body.name !== "string") return badRequest("company is required");
+  if (!body.company || typeof body.company !== "string") return badRequest("company is required");
 
   const contract = await ddb.send(new GetCommand({ TableName: CONTRACTS_TABLE, Key: { id: contractId } }));
   if (!contract.Item) return notFound();
@@ -222,7 +222,6 @@ async function createContract(event, body) {
     milestone60: typeof body.milestone60 === "string" ? body.milestone60 : "",
     milestone90: typeof body.milestone90 === "string" ? body.milestone90 : "",
     milestone120: typeof body.milestone120 === "string" ? body.milestone120 : "",
-    contractorId: body.contractorId,
     agency: typeof body.agency === "string" ? body.agency.trim() : "",
     contractValue: typeof body.contractValue === "number" ? body.contractValue : null,
     description: typeof body.description === "string" ? body.description.slice(0, 2000) : "",

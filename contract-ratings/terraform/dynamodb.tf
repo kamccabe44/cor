@@ -2,6 +2,9 @@
 # pay-per-request avoids babysitting provisioned capacity for what will
 # mostly be idle tables.
 
+# Contractors are nested under a contract (many per contract) via the
+# contractId attribute; the byContract GSI is what lets the Lambda list
+# all contractors for one contract with a Query instead of a Scan.
 resource "aws_dynamodb_table" "contractors" {
   name         = "contract-ratings-contractors"
   billing_mode = "PAY_PER_REQUEST"
@@ -10,6 +13,17 @@ resource "aws_dynamodb_table" "contractors" {
   attribute {
     name = "id"
     type = "S"
+  }
+
+  attribute {
+    name = "contractId"
+    type = "S"
+  }
+
+  global_secondary_index {
+    name            = "byContract"
+    hash_key        = "contractId"
+    projection_type = "ALL"
   }
 
   tags = var.tags
@@ -23,22 +37,6 @@ resource "aws_dynamodb_table" "contracts" {
   attribute {
     name = "id"
     type = "S"
-  }
-
-  attribute {
-    name = "contractorId"
-    type = "S"
-  }
-
-  attribute {
-    name = "contractId"
-    type = "S"
-  }
-
-  global_secondary_index {
-    name               = "byContract"
-    hash_key           = "contractId"
-    projection_type    = "ALL"
   }
 
   tags = var.tags
