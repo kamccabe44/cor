@@ -1,0 +1,14 @@
+{
+  "name": "contract-ratings-scripts",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "One-off maintenance scripts for the Contract Ratings app (seed data, etc.)",
+  "scripts": {
+    "seed": "node seed.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.700.0",
+    "@aws-sdk/lib-dynamodb": "^3.700.0"
+  }
+}

@@ -11,6 +11,7 @@ export function Contracts() {
   const [contractNumber, setContractNumber] = useState("");
   const [title, setTitle] = useState("");
   const [pwsLink, setPwsLink] = useState("");
+  const [notes, setNotes] = useState("");
   const [creating, setCreating] = useState(false);
 
   function refresh() {
@@ -27,10 +28,11 @@ export function Contracts() {
     setCreating(true);
     setError(null);
     try {
-      await api.createContract({ contractNumber, title, pwsLink });
+      await api.createContract({ contractNumber, title, pwsLink, notes });
       setContractNumber("");
       setTitle("");
       setPwsLink("");
+      setNotes("");
       refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create contract");
@@ -58,20 +60,31 @@ export function Contracts() {
         </div>
       )}
 
-      <form onSubmit={onCreate} className="form-row">
-        <input
-          placeholder="Contract number"
-          value={contractNumber}
-          onChange={(e) => setContractNumber(e.target.value)}
-          required
+      <form onSubmit={onCreate} style={{ marginBottom: "1.5rem" }}>
+        <div className="form-row" style={{ marginBottom: "0.6rem" }}>
+          <input
+            placeholder="Contract number"
+            value={contractNumber}
+            onChange={(e) => setContractNumber(e.target.value)}
+            required
+          />
+          <input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+          <input placeholder="PWS link (optional)" value={pwsLink} onChange={(e) => setPwsLink(e.target.value)} />
+        </div>
+        <textarea
+          placeholder="Notes (optional)"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={2}
+          style={{ width: "100%", marginBottom: "0.6rem" }}
         />
-        <input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
-        <input placeholder="PWS link (optional)" value={pwsLink} onChange={(e) => setPwsLink(e.target.value)} />
-        <button type="submit" className="btn btn-primary" disabled={creating}>
-          {creating ? "Adding…" : "+ Add Contract"}
-        </button>
+        <div>
+          <button type="submit" className="btn btn-primary" disabled={creating}>
+            {creating ? "Adding…" : "+ Add Contract"}
+          </button>
+        </div>
       </form>
-      <p className="meta">Add POCs, leads, milestones, and contractors after creating a contract — open it to fill in the rest.</p>
+      <p className="meta">Add leads, POCs, alternate POCs, milestones, and contractors after creating a contract — open it to fill in the rest.</p>
 
       {error && <p className="error-banner">{error}</p>}
       {!items && !error && <p className="empty-state">Loading…</p>}

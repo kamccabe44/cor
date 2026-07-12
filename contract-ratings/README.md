@@ -104,6 +104,24 @@ deployed API by setting the proxy target to the deployed `api_endpoint`
 Terraform output. There is no local DynamoDB in this setup; it always
 talks to the real tables in AWS.
 
+## Seed data (for testing/demo)
+
+`scripts/seed.mjs` writes a few realistic contracts — each with
+contract-level leads/POCs/alternate POCs, nested contractors, and
+ratings — straight into the DynamoDB tables using your ambient AWS
+credentials (it does not go through Cognito/API Gateway):
+
+```bash
+cd scripts
+npm install
+node seed.mjs          # write seed data
+node seed.mjs --wipe   # remove everything it created
+```
+
+Everything it creates is prefixed `seed-`, so `--wipe` removes exactly
+the seed rows and nothing else. Table names/region can be overridden with
+`CONTRACTS_TABLE` / `CONTRACTORS_TABLE` / `RATINGS_TABLE` / `AWS_REGION`.
+
 ## Cost
 
 Every piece here is pay-per-use with no idle cost: DynamoDB on-demand,

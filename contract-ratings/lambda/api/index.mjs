@@ -44,6 +44,31 @@ function isValidStars(value) {
   return Number.isInteger(value) && value >= 1 && value <= 5;
 }
 
+function str(value, max = 500) {
+  return typeof value === "string" ? value.slice(0, max) : "";
+}
+
+// Contract-level contacts (leads, POCs, alternate POCs) are stored as
+// lists of small objects directly on the contract item -- they aren't
+// rated or queried on their own, so a nested list is simpler than a
+// separate table. Every field is coerced to a string so the DynamoDB
+// document client never sees an undefined (it throws on those by default).
+function sanitizeContact(raw) {
+  const c = raw && typeof raw === "object" ? raw : {};
+  return {
+    id: typeof c.id === "string" && c.id ? c.id : crypto.randomUUID(),
+    name: str(c.name, 200).trim(),
+    phone: str(c.phone, 100).trim(),
+    email: str(c.email, 200).trim(),
+    inDate: str(c.inDate, 40),
+    outDate: str(c.outDate, 40),
+  };
+}
+
+function sanitizeContactList(raw) {
+  return Array.isArray(raw) ? raw.slice(0, 200).map(sanitizeContact) : [];
+}
+
 async function rateTarget({ table, id, targetPrefix, event, body }) {
   if (!isValidStars(body.stars)) return badRequest("stars must be an integer from 1 to 5");
 
@@ -132,23 +157,12 @@ async function createContractor(event, body, contractId) {
     id: crypto.randomUUID(),
     contractId,
     company: body.company.trim(),
-    poc: typeof body.poc === "string" ? body.poc.trim() : "",
-    pocPhone: typeof body.pocPhone === "string" ? body.pocPhone.trim() : "",
-    pocEmail: typeof body.pocEmail === "string" ? body.pocEmail.trim() : "",
-    lead: typeof body.lead === "string" ? body.lead.trim() : "",
-    leadPhone: typeof body.leadPhone === "string" ? body.leadPhone.trim() : "",
-    leadEmail: typeof body.leadEmail === "string" ? body.leadEmail.trim() : "",
-    alternatePoc: typeof body.alternatePoc === "string" ? body.alternatePoc.trim() : "", 
-    alternatePocPhone: typeof body.alternatePocPhone === "string" ? body.alternatePocPhone.trim() : "",
-    alternatePocEmail: typeof body.alternatePocEmail === "string" ? body.alternatePocEmail.trim() : "",
-    pocInDate: typeof body.pocInDate === "string" ? body.pocInDate : "",
-    pocOutDate: typeof body.pocOutDate === "string" ? body.pocOutDate : "",
-    cageCode: typeof body.cageCode === "string" ? body.cageCode.trim() : "",
-    ueiSam: typeof body.ueiSam === "string" ? body.ueiSam.trim() : "",
+    cageCode: str(body.cageCode, 50).trim(),
+    ueiSam: str(body.ueiSam, 50).trim(),
+    notes: str(body.notes, 2000),
     avgRating: 0,
     ratingCount: 0,
-    notes: typeof body.notes === "string" ? body.notes.slice(0, 2000) : "",
-    createdBy: user.name, 
+    createdBy: user.name,
     createdAt: now,
     updatedAt: now,
   };
@@ -164,17 +178,6 @@ async function updateContractor(id, body) {
   const next = {
     ...existing.Item,
     company: typeof body.company === "string" && body.company.trim() ? body.company.trim() : existing.Item.company,
-    poc: typeof body.poc === "string" ? body.poc.trim() : existing.Item.poc, 
-    pocPhone: typeof body.pocPhone === "string" ? body.pocPhone.trim() : existing.Item.pocPhone,
-    pocEmail: typeof body.pocEmail === "string" ? body.pocEmail.trim() : existing.Item.pocEmail,
-    lead: typeof body.lead === "string" ? body.lead.trim() : existing.Item.lead,
-    leadPhone: typeof body.leadPhone === "string" ? body.leadPhone.trim() : existing.Item.leadPhone,
-    leadEmail: typeof body.leadEmail === "string" ? body.leadEmail.trim() : existing.Item.leadEmail,
-    alternatePoc: typeof body.alternatePoc === "string" ? body.alternatePoc.trim() : existing.Item.alternatePoc,
-    alternatePocPhone: typeof body.alternatePocPhone === "string" ? body.alternatePocPhone.trim() : existing.Item.alternatePocPhone,
-    alternatePocEmail: typeof body.alternatePocEmail === "string" ? body.alternatePocEmail.trim() : existing.Item.alternatePocEmail,
-    pocInDate: typeof body.pocInDate === "string" ? body.pocInDate : existing.Item.pocInDate,
-    pocOutDate: typeof body.pocOutDate === "string" ? body.pocOutDate : existing.Item.pocOutDate, 
     cageCode: typeof body.cageCode === "string" ? body.cageCode.trim() : existing.Item.cageCode,
     ueiSam: typeof body.ueiSam === "string" ? body.ueiSam.trim() : existing.Item.ueiSam,
     notes: typeof body.notes === "string" ? body.notes.slice(0, 2000) : existing.Item.notes,
@@ -222,6 +225,10 @@ async function createContract(event, body) {
     milestone60: typeof body.milestone60 === "string" ? body.milestone60 : "",
     milestone90: typeof body.milestone90 === "string" ? body.milestone90 : "",
     milestone120: typeof body.milestone120 === "string" ? body.milestone120 : "",
+    leads: sanitizeContactList(body.leads),
+    pocs: sanitizeContactList(body.pocs),
+    alternatePocs: sanitizeContactList(body.alternatePocs),
+    notes: str(body.notes, 2000),
     agency: typeof body.agency === "string" ? body.agency.trim() : "",
     contractValue: typeof body.contractValue === "number" ? body.contractValue : null,
     description: typeof body.description === "string" ? body.description.slice(0, 2000) : "",
@@ -249,7 +256,11 @@ async function updateContract(id, body) {
     milestone30: typeof body.milestone30 === "string" ? body.milestone30 : existing.Item.milestone30, 
     milestone60: typeof body.milestone60 === "string" ? body.milestone60 : existing.Item.milestone60, 
     milestone90: typeof body.milestone90 === "string" ? body.milestone90 : existing.Item.milestone90,
-    milestone120: typeof body.milestone120 === "string" ? body.milestone120 : existing.Item.milestone120, 
+    milestone120: typeof body.milestone120 === "string" ? body.milestone120 : existing.Item.milestone120,
+    leads: Array.isArray(body.leads) ? sanitizeContactList(body.leads) : existing.Item.leads,
+    pocs: Array.isArray(body.pocs) ? sanitizeContactList(body.pocs) : existing.Item.pocs,
+    alternatePocs: Array.isArray(body.alternatePocs) ? sanitizeContactList(body.alternatePocs) : existing.Item.alternatePocs,
+    notes: typeof body.notes === "string" ? body.notes.slice(0, 2000) : existing.Item.notes,
     agency: typeof body.agency === "string" ? body.agency.trim() : existing.Item.agency,
     contractValue: typeof body.contractValue === "number" ? body.contractValue : existing.Item.contractValue,
     description: typeof body.description === "string" ? body.description.slice(0, 2000) : existing.Item.description,

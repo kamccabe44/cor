@@ -1,20 +1,21 @@
 import { getIdToken } from "./auth";
 
+// A contract-level contact (lead, POC, or alternate POC). Stored as an
+// element of one of the contract's contact lists. inDate/outDate are only
+// meaningful for POCs; leads and alternate POCs leave them blank.
+export type Contact = {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  inDate: string;
+  outDate: string;
+};
+
 export type Contractor = {
   id: string;
   contractId: string;
   company: string;
-  poc: string;
-  pocPhone: string;
-  pocEmail: string;
-  lead: string;
-  leadPhone: string;
-  leadEmail: string;
-  alternatePoc: string;
-  alternatePocPhone: string;
-  alternatePocEmail: string;
-  pocInDate: string;
-  pocOutDate: string;
   cageCode: string;
   ueiSam: string;
   notes: string;
@@ -37,6 +38,10 @@ export type Contract = {
   milestone60: string;
   milestone90: string;
   milestone120: string;
+  leads: Contact[];
+  pocs: Contact[];
+  alternatePocs: Contact[];
+  notes: string;
   agency: string;
   contractValue: number | null;
   description: string;
