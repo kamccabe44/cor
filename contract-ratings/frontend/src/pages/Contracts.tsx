@@ -1,18 +1,16 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { api, type Contract, type Contractor } from "../api";
+import { api, type Contract } from "../api";
 import { StarRatingDisplay } from "../components/StarRating";
 import { DocumentIcon } from "../components/Icons";
 
 export function Contracts() {
   const [items, setItems] = useState<Contract[] | null>(null);
-  const [contractors, setContractors] = useState<Contractor[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const [contractNumber, setContractNumber] = useState("");
   const [title, setTitle] = useState("");
-  const [contractorId, setContractorId] = useState("");
-  const [agency, setAgency] = useState("");
+  const [pwsLink, setPwsLink] = useState("");
   const [creating, setCreating] = useState(false);
 
   function refresh() {
@@ -20,7 +18,6 @@ export function Contracts() {
       .listContracts()
       .then((res) => setItems(res.items.sort((a, b) => b.createdAt.localeCompare(a.createdAt))))
       .catch((err) => setError(err.message));
-    api.listContractors().then((res) => setContractors(res.items));
   }
 
   useEffect(refresh, []);
@@ -30,11 +27,10 @@ export function Contracts() {
     setCreating(true);
     setError(null);
     try {
-      await api.createContract({ contractNumber, title, contractorId, agency });
+      await api.createContract({ contractNumber, title, pwsLink });
       setContractNumber("");
       setTitle("");
-      setContractorId("");
-      setAgency("");
+      setPwsLink("");
       refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create contract");
@@ -70,22 +66,12 @@ export function Contracts() {
           required
         />
         <input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
-        <select value={contractorId} onChange={(e) => setContractorId(e.target.value)} required>
-          <option value="" disabled>
-            Contractor…
-          </option>
-          {contractors.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <input placeholder="Agency" value={agency} onChange={(e) => setAgency(e.target.value)} />
-        <button type="submit" className="btn btn-primary" disabled={creating || contractors.length === 0}>
+        <input placeholder="PWS link (optional)" value={pwsLink} onChange={(e) => setPwsLink(e.target.value)} />
+        <button type="submit" className="btn btn-primary" disabled={creating}>
           {creating ? "Adding…" : "+ Add Contract"}
         </button>
       </form>
-      {contractors.length === 0 && <p className="meta">Add a contractor first before adding a contract.</p>}
+      <p className="meta">Add POCs, leads, milestones, and contractors after creating a contract — open it to fill in the rest.</p>
 
       {error && <p className="error-banner">{error}</p>}
       {!items && !error && <p className="empty-state">Loading…</p>}
@@ -97,7 +83,7 @@ export function Contracts() {
               <tr>
                 <th>Contract #</th>
                 <th>Title</th>
-                <th>Agency</th>
+                <th>Period</th>
                 <th>Rating</th>
               </tr>
             </thead>
@@ -110,7 +96,9 @@ export function Contracts() {
                     </Link>
                   </td>
                   <td>{c.title}</td>
-                  <td>{c.agency || "—"}</td>
+                  <td>
+                    {c.contractStart || c.contractEnd ? `${c.contractStart || "—"} → ${c.contractEnd || "—"}` : "—"}
+                  </td>
                   <td>
                     <StarRatingDisplay avg={c.avgRating} count={c.ratingCount} />
                   </td>

@@ -2,7 +2,19 @@ import { getIdToken } from "./auth";
 
 export type Contractor = {
   id: string;
-  name: string;
+  contractId: string;
+  company: string;
+  poc: string;
+  pocPhone: string;
+  pocEmail: string;
+  lead: string;
+  leadPhone: string;
+  leadEmail: string;
+  alternatePoc: string;
+  alternatePocPhone: string;
+  alternatePocEmail: string;
+  pocInDate: string;
+  pocOutDate: string;
   cageCode: string;
   ueiSam: string;
   notes: string;
@@ -18,9 +30,14 @@ export type Contract = {
   id: string;
   contractNumber: string;
   title: string;
-  contractorId: string;
+  pwsLink: string;
+  contractStart: string;
+  contractEnd: string;
+  milestone30: string;
+  milestone60: string;
+  milestone90: string;
+  milestone120: string;
   agency: string;
-  awardDate: string;
   contractValue: number | null;
   description: string;
   avgRating: number;
@@ -61,10 +78,13 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
-  listContractors: () => request<{ items: Contractor[] }>("/contractors"),
+  // Contractors are nested under a contract: listed/created via the
+  // parent contract's id, but read/updated/deleted/rated by their own id.
+  listContractorsForContract: (contractId: string) =>
+    request<{ items: Contractor[] }>(`/contracts/${contractId}/contractors`),
+  createContractor: (contractId: string, body: Partial<Contractor>) =>
+    request<Contractor>(`/contracts/${contractId}/contractors`, { method: "POST", body: JSON.stringify(body) }),
   getContractor: (id: string) => request<Contractor>(`/contractors/${id}`),
-  createContractor: (body: Partial<Contractor>) =>
-    request<Contractor>("/contractors", { method: "POST", body: JSON.stringify(body) }),
   updateContractor: (id: string, body: Partial<Contractor>) =>
     request<Contractor>(`/contractors/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   deleteContractor: (id: string) => request<void>(`/contractors/${id}`, { method: "DELETE" }),
@@ -74,8 +94,7 @@ export const api = {
       body: JSON.stringify({ stars, comment }),
     }),
 
-  listContracts: (contractorId?: string) =>
-    request<{ items: Contract[] }>(`/contracts${contractorId ? `?contractorId=${contractorId}` : ""}`),
+  listContracts: () => request<{ items: Contract[] }>("/contracts"),
   getContract: (id: string) => request<Contract>(`/contracts/${id}`),
   createContract: (body: Partial<Contract>) =>
     request<Contract>("/contracts", { method: "POST", body: JSON.stringify(body) }),

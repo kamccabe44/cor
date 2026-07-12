@@ -2,8 +2,6 @@ import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from "react
 import { AuthProvider, useAuth } from "./AuthContext";
 import { ShieldIcon } from "./components/Icons";
 import { Login } from "./pages/Login";
-import { Contractors } from "./pages/Contractors";
-import { ContractorDetail } from "./pages/ContractorDetail";
 import { Contracts } from "./pages/Contracts";
 import { ContractDetail } from "./pages/ContractDetail";
 
@@ -16,10 +14,7 @@ function RequireAuth({ children }: { children: JSX.Element }) {
 
 function NavLinks() {
   const { pathname } = useLocation();
-  const links = [
-    { to: "/contractors", label: "Contractors" },
-    { to: "/contracts", label: "Contracts" },
-  ];
+  const links = [{ to: "/contracts", label: "Contracts" }];
   return (
     <nav className="app-nav">
       {links.map((l) => (
@@ -37,7 +32,7 @@ function Shell({ children }: { children: JSX.Element }) {
     <div className="app-shell">
       {signedIn && (
         <header className="app-header">
-          <Link to="/contractors" className="brand">
+          <Link to="/contracts" className="brand">
             <ShieldIcon style={{ width: "1.4rem", height: "1.4rem" }} />
             Contract Ratings
           </Link>
@@ -63,22 +58,6 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route
-              path="/contractors"
-              element={
-                <RequireAuth>
-                  <Contractors />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/contractors/:id"
-              element={
-                <RequireAuth>
-                  <ContractorDetail />
-                </RequireAuth>
-              }
-            />
-            <Route
               path="/contracts"
               element={
                 <RequireAuth>
@@ -94,8 +73,8 @@ export default function App() {
                 </RequireAuth>
               }
             />
-            <Route path="/" element={<Navigate to="/contractors" replace />} />
-            <Route path="*" element={<Navigate to="/contractors" replace />} />
+            <Route path="/" element={<Navigate to="/contracts" replace />} />
+            <Route path="*" element={<Navigate to="/contracts" replace />} />
           </Routes>
         </Shell>
       </BrowserRouter>
