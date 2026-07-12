@@ -8,13 +8,19 @@ import {
   QueryCommand,
   ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+const s3 = new S3Client({});
 
 const CONTRACTORS_TABLE = process.env.CONTRACTORS_TABLE;
 const CONTRACTS_TABLE = process.env.CONTRACTS_TABLE;
 const RATINGS_TABLE = process.env.RATINGS_TABLE;
+const PWS_BUCKET = process.env.PWS_BUCKET;
 const CONTRACTORS_BY_CONTRACT_INDEX = "byContract";
+const PWS_UPLOAD_URL_TTL = 300; // 5 min to start the upload
+const PWS_DOWNLOAD_URL_TTL = 3600; // 1 hour to open the link
 
 function json(statusCode, body) {
   return {
@@ -46,6 +52,30 @@ function isValidStars(value) {
 
 function str(value, max = 500) {
   return typeof value === "string" ? value.slice(0, max) : "";
+}
+
+// Keep only safe filename characters so the S3 key is predictable and
+// can't contain path traversal or odd bytes. Preserves the extension.
+function sanitizeFilename(name) {
+  const base = String(name || "")
+    .replace(/[^\w.\- ]+/g, "_")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 200);
+  return base || "document";
+}
+
+// Presigned GET URL for a contract's stored PWS, or null if none. Sets
+// Content-Disposition so it opens inline in the browser with its real
+// filename (PDFs render, other types download).
+async function pwsDownloadUrl(item) {
+  if (!PWS_BUCKET || !item.pwsKey) return null;
+  const cmd = new GetObjectCommand({
+    Bucket: PWS_BUCKET,
+    Key: item.pwsKey,
+    ResponseContentDisposition: `inline; filename="${item.pwsFilename || "pws"}"`,
+  });
+  return getSignedUrl(s3, cmd, { expiresIn: PWS_DOWNLOAD_URL_TTL });
 }
 
 // Contract-level contacts (leads, POCs, alternate POCs) are stored as
@@ -203,7 +233,8 @@ async function getContract(id, event) {
   const res = await ddb.send(new GetCommand({ TableName: CONTRACTS_TABLE, Key: { id } }));
   if (!res.Item) return notFound();
   const myRating = await myRatingFor("CONTRACT", id, currentUser(event).sub);
-  return json(200, { ...res.Item, myRating });
+  const pwsUrl = await pwsDownloadUrl(res.Item);
+  return json(200, { ...res.Item, myRating, pwsDownloadUrl: pwsUrl });
 }
 
 async function createContract(event, body) {
@@ -229,6 +260,8 @@ async function createContract(event, body) {
     pocs: sanitizeContactList(body.pocs),
     alternatePocs: sanitizeContactList(body.alternatePocs),
     notes: str(body.notes, 2000),
+    pwsKey: "",
+    pwsFilename: "",
     agency: typeof body.agency === "string" ? body.agency.trim() : "",
     contractValue: typeof body.contractValue === "number" ? body.contractValue : null,
     description: typeof body.description === "string" ? body.description.slice(0, 2000) : "",
@@ -273,6 +306,61 @@ async function updateContract(id, body) {
 async function deleteContract(id) {
   await ddb.send(new DeleteCommand({ TableName: CONTRACTS_TABLE, Key: { id } }));
   return json(204, {});
+}
+
+// Mints a short-lived presigned PUT URL so the browser can upload the PWS
+// file straight to S3 (bypassing API Gateway's ~6MB payload limit). The
+// key is server-chosen under this contract's prefix; recordPws() below
+// confirms it onto the contract after the upload succeeds.
+async function pwsUploadUrl(id, body) {
+  if (!PWS_BUCKET) return json(500, { error: "PWS storage not configured" });
+  if (!body.filename || typeof body.filename !== "string") return badRequest("filename is required");
+
+  const contract = await ddb.send(new GetCommand({ TableName: CONTRACTS_TABLE, Key: { id } }));
+  if (!contract.Item) return notFound();
+
+  const filename = sanitizeFilename(body.filename);
+  const key = `pws/${id}/${crypto.randomUUID()}-${filename}`;
+  const cmd = new PutObjectCommand({ Bucket: PWS_BUCKET, Key: key });
+  const uploadUrl = await getSignedUrl(s3, cmd, { expiresIn: PWS_UPLOAD_URL_TTL });
+  return json(200, { uploadUrl, key, filename });
+}
+
+// Records an uploaded PWS onto the contract. Validates the key really is
+// under this contract's prefix so a client can't point it at someone
+// else's object. Deletes the previously-stored file if it's being replaced.
+async function recordPws(id, body) {
+  if (!body.key || typeof body.key !== "string") return badRequest("key is required");
+  if (!body.key.startsWith(`pws/${id}/`)) return badRequest("key does not belong to this contract");
+
+  const existing = await ddb.send(new GetCommand({ TableName: CONTRACTS_TABLE, Key: { id } }));
+  if (!existing.Item) return notFound();
+
+  if (existing.Item.pwsKey && existing.Item.pwsKey !== body.key) {
+    await s3.send(new DeleteObjectCommand({ Bucket: PWS_BUCKET, Key: existing.Item.pwsKey })).catch(() => {});
+  }
+
+  const next = {
+    ...existing.Item,
+    pwsKey: body.key,
+    pwsFilename: sanitizeFilename(body.filename),
+    updatedAt: new Date().toISOString(),
+  };
+  await ddb.send(new PutCommand({ TableName: CONTRACTS_TABLE, Item: next }));
+  return json(200, { ...next, pwsDownloadUrl: await pwsDownloadUrl(next) });
+}
+
+async function removePws(id) {
+  const existing = await ddb.send(new GetCommand({ TableName: CONTRACTS_TABLE, Key: { id } }));
+  if (!existing.Item) return notFound();
+
+  if (existing.Item.pwsKey) {
+    await s3.send(new DeleteObjectCommand({ Bucket: PWS_BUCKET, Key: existing.Item.pwsKey })).catch(() => {});
+  }
+
+  const next = { ...existing.Item, pwsKey: "", pwsFilename: "", updatedAt: new Date().toISOString() };
+  await ddb.send(new PutCommand({ TableName: CONTRACTS_TABLE, Item: next }));
+  return json(200, { ...next, pwsDownloadUrl: null });
 }
 
 function parseBody(event) {
@@ -322,6 +410,12 @@ export const handler = async (event) => {
         return await listContractorsForContract(id);
       case "POST /api/contracts/{id}/contractors":
         return await createContractor(event, body, id);
+      case "POST /api/contracts/{id}/pws/upload-url":
+        return await pwsUploadUrl(id, body);
+      case "POST /api/contracts/{id}/pws":
+        return await recordPws(id, body);
+      case "DELETE /api/contracts/{id}/pws":
+        return await removePws(id);
 
       default:
         return json(404, { error: `No route for ${routeKey}` });

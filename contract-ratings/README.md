@@ -35,6 +35,15 @@ Browser → https://cor.1136mpco.com (Route53 alias)
   average from all ratings for that target, and writes `avgRating` /
   `ratingCount` back onto the parent item so list pages don't need an
   extra query per row.
+- **PWS document uploads** (`terraform/s3-pws.tf`): each contract can
+  have a PWS file stored in a private S3 bucket
+  (`contract-ratings-pws-<account>`). The browser never sends the file
+  through the API — it asks the Lambda for a short-lived **presigned PUT
+  URL** and uploads straight to S3 (so there's no ~6 MB API Gateway
+  payload limit), then records the object key on the contract. Downloads
+  use a presigned GET URL the Lambda mints on `getContract`, so the
+  bucket stays fully private. The bucket has a CORS rule allowing PUT/GET
+  from the app's domain (required for the browser's direct upload).
 
 ## This takes over `cor.1136mpco.com` from the old EC2/k3s deployment
 

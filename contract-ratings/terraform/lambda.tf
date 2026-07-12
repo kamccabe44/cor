@@ -50,6 +50,22 @@ resource "aws_iam_role_policy" "api_dynamodb" {
   policy = data.aws_iam_policy_document.api_dynamodb.json
 }
 
+# The Lambda signs presigned PUT/GET URLs for PWS uploads/downloads, so
+# its role needs Put/Get/Delete on the PWS bucket's objects.
+data "aws_iam_policy_document" "api_pws" {
+  statement {
+    effect    = "Allow"
+    actions   = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
+    resources = ["${aws_s3_bucket.pws.arn}/*"]
+  }
+}
+
+resource "aws_iam_role_policy" "api_pws" {
+  name   = "pws-s3-access"
+  role   = aws_iam_role.api.id
+  policy = data.aws_iam_policy_document.api_pws.json
+}
+
 resource "aws_cloudwatch_log_group" "api" {
   name              = "/aws/lambda/contract-ratings-api"
   retention_in_days = 30
@@ -71,6 +87,7 @@ resource "aws_lambda_function" "api" {
       CONTRACTORS_TABLE = aws_dynamodb_table.contractors.name
       CONTRACTS_TABLE   = aws_dynamodb_table.contracts.name
       RATINGS_TABLE     = aws_dynamodb_table.ratings.name
+      PWS_BUCKET        = aws_s3_bucket.pws.id
     }
   }
 

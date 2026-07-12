@@ -38,6 +38,9 @@ locals {
     "POST /api/contracts/{id}/rating",
     "GET /api/contracts/{id}/contractors",
     "POST /api/contracts/{id}/contractors",
+    "POST /api/contracts/{id}/pws/upload-url",
+    "POST /api/contracts/{id}/pws",
+    "DELETE /api/contracts/{id}/pws",
   ]
 }
 

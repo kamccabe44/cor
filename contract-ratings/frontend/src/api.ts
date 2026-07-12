@@ -45,6 +45,11 @@ export type Contract = {
   agency: string;
   contractValue: number | null;
   description: string;
+  pwsKey?: string;
+  pwsFilename?: string;
+  // Presigned download URL for the uploaded PWS, generated server-side on
+  // getContract (short-lived); null/absent when there's no PWS.
+  pwsDownloadUrl?: string | null;
   avgRating: number;
   ratingCount: number;
   createdBy: string;
@@ -111,4 +116,28 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ stars, comment }),
     }),
+
+  // PWS document upload: ask for a presigned URL, PUT the file straight to
+  // S3, then record it on the contract. Download URL comes back on
+  // getContract as pwsDownloadUrl.
+  getPwsUploadUrl: (contractId: string, filename: string) =>
+    request<{ uploadUrl: string; key: string; filename: string }>(`/contracts/${contractId}/pws/upload-url`, {
+      method: "POST",
+      body: JSON.stringify({ filename }),
+    }),
+  recordPws: (contractId: string, key: string, filename: string) =>
+    request<Contract>(`/contracts/${contractId}/pws`, { method: "POST", body: JSON.stringify({ key, filename }) }),
+  removePws: (contractId: string) => request<Contract>(`/contracts/${contractId}/pws`, { method: "DELETE" }),
 };
+
+// Uploads a file directly to S3 with a presigned PUT URL. This does NOT
+// use `request()` -- presigned URLs carry their own auth in the query
+// string, so no Authorization header (and it must not go through /api).
+export async function uploadToS3(uploadUrl: string, file: File): Promise<void> {
+  const res = await fetch(uploadUrl, {
+    method: "PUT",
+    body: file,
+    headers: { "content-type": file.type || "application/octet-stream" },
+  });
+  if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+}

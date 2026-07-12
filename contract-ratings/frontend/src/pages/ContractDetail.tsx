@@ -1,6 +1,6 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { api, type Contact, type Contract, type Contractor } from "../api";
+import { api, uploadToS3, type Contact, type Contract, type Contractor } from "../api";
 import { StarRatingDisplay, StarRatingInput } from "../components/StarRating";
 import { ContactSection } from "../components/ContactSection";
 import { UsersIcon } from "../components/Icons";
@@ -270,6 +270,73 @@ function AddContractorForm({ contractId, onAdded }: { contractId: string; onAdde
   );
 }
 
+// --- PWS document upload ---
+
+function PwsUpload({ contract, onUpdated }: { contract: Contract; onUpdated: (c: Contract) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // reset so the same file can be re-selected later
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const { uploadUrl, key, filename } = await api.getPwsUploadUrl(contract.id, file.name);
+      await uploadToS3(uploadUrl, file);
+      onUpdated(await api.recordPws(contract.id, key, filename));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    if (!confirm("Remove the uploaded PWS document?")) return;
+    setBusy(true);
+    setError(null);
+    try {
+      onUpdated(await api.removePws(contract.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Remove failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid var(--slate-200)" }}>
+      <div className="meta" style={{ marginBottom: "0.4rem" }}>PWS document</div>
+      {contract.pwsFilename ? (
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+          {contract.pwsDownloadUrl ? (
+            <a href={contract.pwsDownloadUrl} target="_blank" rel="noreferrer" className="entity-name">
+              {contract.pwsFilename}
+            </a>
+          ) : (
+            <span>{contract.pwsFilename}</span>
+          )}
+          <label className="btn btn-outline" style={{ cursor: "pointer" }}>
+            {busy ? "Working…" : "Replace"}
+            <input type="file" onChange={onFile} disabled={busy} style={{ display: "none" }} />
+          </label>
+          <button className="btn btn-outline" onClick={remove} disabled={busy}>
+            Remove
+          </button>
+        </div>
+      ) : (
+        <label className="btn btn-primary" style={{ cursor: "pointer" }}>
+          {busy ? "Uploading…" : "Upload PWS"}
+          <input type="file" onChange={onFile} disabled={busy} style={{ display: "none" }} />
+        </label>
+      )}
+      {error && <p className="error-banner" style={{ marginTop: "0.5rem" }}>{error}</p>}
+    </div>
+  );
+}
+
 // --- Page ---
 
 export function ContractDetail() {
@@ -366,6 +433,8 @@ export function ContractDetail() {
             )}
           </div>
         )}
+
+        <PwsUpload contract={contract} onUpdated={setContract} />
 
         <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid var(--slate-200)" }}>
           <StarRatingDisplay avg={contract.avgRating} count={contract.ratingCount} />
