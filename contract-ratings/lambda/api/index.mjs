@@ -14,7 +14,7 @@ const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const CONTRACTORS_TABLE = process.env.CONTRACTORS_TABLE;
 const CONTRACTS_TABLE = process.env.CONTRACTS_TABLE;
 const RATINGS_TABLE = process.env.RATINGS_TABLE;
-const CONTRACTS_BY_CONTRACTOR_INDEX = "byContractor";
+const CONTRACTORS_BY_CONTRACT_INDEX = "byContract";
 
 function json(statusCode, body) {
   return {
@@ -101,8 +101,15 @@ async function myRatingFor(targetPrefix, id, sub) {
 
 // --- Contractors ---
 
-async function listContractors() {
-  const res = await ddb.send(new ScanCommand({ TableName: CONTRACTORS_TABLE }));
+async function listContractorsForContract(contractId) {
+  const res = await ddb.send(
+    new QueryCommand({
+      TableName: CONTRACTORS_TABLE,
+      IndexName: CONTRACTORS_BY_CONTRACT_INDEX,
+      KeyConditionExpression: "contractId = :c",
+      ExpressionAttributeValues: { ":c": contractId },
+    })
+  );
   return json(200, { items: res.Items ?? [] });
 }
 
@@ -113,20 +120,35 @@ async function getContractor(id, event) {
   return json(200, { ...res.Item, myRating });
 }
 
-async function createContractor(event, body) {
-  if (!body.name || typeof body.name !== "string") return badRequest("name is required");
+async function createContractor(event, body, contractId) {
+  if (!body.company || typeof body.name !== "string") return badRequest("company is required");
+
+  const contract = await ddb.send(new GetCommand({ TableName: CONTRACTS_TABLE, Key: { id: contractId } }));
+  if (!contract.Item) return notFound();
 
   const user = currentUser(event);
   const now = new Date().toISOString();
   const item = {
     id: crypto.randomUUID(),
-    name: body.name.trim(),
+    contractId,
+    company: body.company.trim(),
+    poc: typeof body.poc === "string" ? body.poc.trim() : "",
+    pocPhone: typeof body.pocPhone === "string" ? body.pocPhone.trim() : "",
+    pocEmail: typeof body.pocEmail === "string" ? body.pocEmail.trim() : "",
+    lead: typeof body.lead === "string" ? body.lead.trim() : "",
+    leadPhone: typeof body.leadPhone === "string" ? body.leadPhone.trim() : "",
+    leadEmail: typeof body.leadEmail === "string" ? body.leadEmail.trim() : "",
+    alternatePoc: typeof body.alternatePoc === "string" ? body.alternatePoc.trim() : "", 
+    alternatePocPhone: typeof body.alternatePocPhone === "string" ? body.alternatePocPhone.trim() : "",
+    alternatePocEmail: typeof body.alternatePocEmail === "string" ? body.alternatePocEmail.trim() : "",
+    pocInDate: typeof body.pocInDate === "string" ? body.pocInDate : "",
+    pocOutDate: typeof body.pocOutDate === "string" ? body.pocOutDate : "",
     cageCode: typeof body.cageCode === "string" ? body.cageCode.trim() : "",
     ueiSam: typeof body.ueiSam === "string" ? body.ueiSam.trim() : "",
-    notes: typeof body.notes === "string" ? body.notes.slice(0, 2000) : "",
     avgRating: 0,
     ratingCount: 0,
-    createdBy: user.name,
+    notes: typeof body.notes === "string" ? body.notes.slice(0, 2000) : "",
+    createdBy: user.name, 
     createdAt: now,
     updatedAt: now,
   };
@@ -141,7 +163,18 @@ async function updateContractor(id, body) {
   const now = new Date().toISOString();
   const next = {
     ...existing.Item,
-    name: typeof body.name === "string" && body.name.trim() ? body.name.trim() : existing.Item.name,
+    company: typeof body.company === "string" && body.company.trim() ? body.company.trim() : existing.Item.company,
+    poc: typeof body.poc === "string" ? body.poc.trim() : existing.Item.poc, 
+    pocPhone: typeof body.pocPhone === "string" ? body.pocPhone.trim() : existing.Item.pocPhone,
+    pocEmail: typeof body.pocEmail === "string" ? body.pocEmail.trim() : existing.Item.pocEmail,
+    lead: typeof body.lead === "string" ? body.lead.trim() : existing.Item.lead,
+    leadPhone: typeof body.leadPhone === "string" ? body.leadPhone.trim() : existing.Item.leadPhone,
+    leadEmail: typeof body.leadEmail === "string" ? body.leadEmail.trim() : existing.Item.leadEmail,
+    alternatePoc: typeof body.alternatePoc === "string" ? body.alternatePoc.trim() : existing.Item.alternatePoc,
+    alternatePocPhone: typeof body.alternatePocPhone === "string" ? body.alternatePocPhone.trim() : existing.Item.alternatePocPhone,
+    alternatePocEmail: typeof body.alternatePocEmail === "string" ? body.alternatePocEmail.trim() : existing.Item.alternatePocEmail,
+    pocInDate: typeof body.pocInDate === "string" ? body.pocInDate : existing.Item.pocInDate,
+    pocOutDate: typeof body.pocOutDate === "string" ? body.pocOutDate : existing.Item.pocOutDate, 
     cageCode: typeof body.cageCode === "string" ? body.cageCode.trim() : existing.Item.cageCode,
     ueiSam: typeof body.ueiSam === "string" ? body.ueiSam.trim() : existing.Item.ueiSam,
     notes: typeof body.notes === "string" ? body.notes.slice(0, 2000) : existing.Item.notes,
@@ -158,19 +191,7 @@ async function deleteContractor(id) {
 
 // --- Contracts ---
 
-async function listContracts(event) {
-  const contractorId = event.queryStringParameters?.contractorId;
-  if (contractorId) {
-    const res = await ddb.send(
-      new QueryCommand({
-        TableName: CONTRACTS_TABLE,
-        IndexName: CONTRACTS_BY_CONTRACTOR_INDEX,
-        KeyConditionExpression: "contractorId = :c",
-        ExpressionAttributeValues: { ":c": contractorId },
-      })
-    );
-    return json(200, { items: res.Items ?? [] });
-  }
+async function listContracts() {
   const res = await ddb.send(new ScanCommand({ TableName: CONTRACTS_TABLE }));
   return json(200, { items: res.Items ?? [] });
 }
@@ -187,10 +208,6 @@ async function createContract(event, body) {
     return badRequest("contractNumber is required");
   }
   if (!body.title || typeof body.title !== "string") return badRequest("title is required");
-  if (!body.contractorId || typeof body.contractorId !== "string") return badRequest("contractorId is required");
-
-  const contractor = await ddb.send(new GetCommand({ TableName: CONTRACTORS_TABLE, Key: { id: body.contractorId } }));
-  if (!contractor.Item) return badRequest("contractorId does not refer to an existing contractor");
 
   const user = currentUser(event);
   const now = new Date().toISOString();
@@ -198,9 +215,15 @@ async function createContract(event, body) {
     id: crypto.randomUUID(),
     contractNumber: body.contractNumber.trim(),
     title: body.title.trim(),
+    pwsLink: typeof body.pwsLink === "string" ? body.pwsLink.trim() : "",
+    contractStart: typeof body.contractStart === "string" ? body.contractStart : "",
+    contractEnd: typeof body.contractEnd === "string" ? body.contractEnd : "",
+    milestone30: typeof body.milestone30 === "string" ? body.milestone30 : "",
+    milestone60: typeof body.milestone60 === "string" ? body.milestone60 : "",
+    milestone90: typeof body.milestone90 === "string" ? body.milestone90 : "",
+    milestone120: typeof body.milestone120 === "string" ? body.milestone120 : "",
     contractorId: body.contractorId,
     agency: typeof body.agency === "string" ? body.agency.trim() : "",
-    awardDate: typeof body.awardDate === "string" ? body.awardDate : "",
     contractValue: typeof body.contractValue === "number" ? body.contractValue : null,
     description: typeof body.description === "string" ? body.description.slice(0, 2000) : "",
     avgRating: 0,
@@ -221,8 +244,14 @@ async function updateContract(id, body) {
   const next = {
     ...existing.Item,
     title: typeof body.title === "string" && body.title.trim() ? body.title.trim() : existing.Item.title,
+    pwsLink: typeof body.pwsLink === "string" ? body.pwsLink.trim() : existing.Item.pwsLink,
+    contractStart: typeof body.contractStart === "string" ? body.contractStart : existing.Item.contractStart,
+    contractEnd: typeof body.contractEnd === "string" ? body.contractEnd : existing.Item.contractEnd, 
+    milestone30: typeof body.milestone30 === "string" ? body.milestone30 : existing.Item.milestone30, 
+    milestone60: typeof body.milestone60 === "string" ? body.milestone60 : existing.Item.milestone60, 
+    milestone90: typeof body.milestone90 === "string" ? body.milestone90 : existing.Item.milestone90,
+    milestone120: typeof body.milestone120 === "string" ? body.milestone120 : existing.Item.milestone120, 
     agency: typeof body.agency === "string" ? body.agency.trim() : existing.Item.agency,
-    awardDate: typeof body.awardDate === "string" ? body.awardDate : existing.Item.awardDate,
     contractValue: typeof body.contractValue === "number" ? body.contractValue : existing.Item.contractValue,
     description: typeof body.description === "string" ? body.description.slice(0, 2000) : existing.Item.description,
     updatedAt: now,
@@ -258,10 +287,6 @@ export const handler = async (event) => {
 
   try {
     switch (routeKey) {
-      case "GET /api/contractors":
-        return await listContractors();
-      case "POST /api/contractors":
-        return await createContractor(event, body);
       case "GET /api/contractors/{id}":
         return await getContractor(id, event);
       case "PUT /api/contractors/{id}":
@@ -272,7 +297,7 @@ export const handler = async (event) => {
         return await rateTarget({ table: CONTRACTORS_TABLE, id, targetPrefix: "CONTRACTOR", event, body });
 
       case "GET /api/contracts":
-        return await listContracts(event);
+        return await listContracts();
       case "POST /api/contracts":
         return await createContract(event, body);
       case "GET /api/contracts/{id}":
@@ -283,6 +308,10 @@ export const handler = async (event) => {
         return await deleteContract(id);
       case "POST /api/contracts/{id}/rating":
         return await rateTarget({ table: CONTRACTS_TABLE, id, targetPrefix: "CONTRACT", event, body });
+      case "GET /api/contracts/{id}/contractors":
+        return await listContractorsForContract(id);
+      case "POST /api/contracts/{id}/contractors":
+        return await createContractor(event, body, id);
 
       default:
         return json(404, { error: `No route for ${routeKey}` });

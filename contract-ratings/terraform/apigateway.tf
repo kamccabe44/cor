@@ -26,8 +26,6 @@ resource "aws_apigatewayv2_integration" "api" {
 
 locals {
   api_routes = [
-    "GET /api/contractors",
-    "POST /api/contractors",
     "GET /api/contractors/{id}",
     "PUT /api/contractors/{id}",
     "DELETE /api/contractors/{id}",
@@ -38,6 +36,8 @@ locals {
     "PUT /api/contracts/{id}",
     "DELETE /api/contracts/{id}",
     "POST /api/contracts/{id}/rating",
+    "GET /api/contracts/{id}/contractors",
+    "POST /api/contracts/{id}/contractors",
   ]
 }
 

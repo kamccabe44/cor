@@ -30,10 +30,15 @@ resource "aws_dynamodb_table" "contracts" {
     type = "S"
   }
 
+  attribute {
+    name = "contractId"
+    type = "S"
+  }
+
   global_secondary_index {
-    name            = "byContractor"
-    hash_key        = "contractorId"
-    projection_type = "ALL"
+    name               = "byContract"
+    hash_key           = "contractId"
+    projection_type    = "ALL"
   }
 
   tags = var.tags
