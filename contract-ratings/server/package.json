@@ -1,0 +1,10 @@
+{
+  "name": "contract-ratings-server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Self-contained container server for Contract Ratings (node:sqlite + local disk + shared password), reusing the shared API core.",
+  "scripts": {
+    "start": "node server.mjs"
+  }
+}

@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { getSession, signIn as cognitoSignIn, signOut as cognitoSignOut, currentDisplayName } from "./auth";
+import { getLocalSession, localSignIn, localSignOut } from "./localAuth";
+import { config } from "./config";
 
 type AuthState = {
   loading: boolean;
@@ -17,6 +19,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [displayName, setDisplayName] = useState<string | null>(null);
 
   useEffect(() => {
+    if (config.localMode) {
+      getLocalSession()
+        .then((s) => {
+          if (s.signedIn) {
+            setSignedIn(true);
+            setDisplayName(s.name);
+          }
+        })
+        .finally(() => setLoading(false));
+      return;
+    }
     getSession()
       .then((session) => {
         if (session?.isValid()) {
@@ -28,13 +41,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function signIn(username: string, password: string) {
+    if (config.localMode) {
+      const s = await localSignIn(password);
+      setSignedIn(true);
+      setDisplayName(s.name);
+      return;
+    }
     const session = await cognitoSignIn(username, password);
     setSignedIn(true);
     setDisplayName(currentDisplayName(session));
   }
 
   function signOut() {
-    cognitoSignOut();
+    if (config.localMode) {
+      localSignOut();
+    } else {
+      cognitoSignOut();
+    }
     setSignedIn(false);
     setDisplayName(null);
   }

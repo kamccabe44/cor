@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: contract-ratings
+  labels:
+    app: contract-ratings
+spec:
+  replicas: 1
+  # SQLite is a single-writer store on a ReadWriteOnce volume, so run one
+  # replica and use Recreate (the volume can't attach to two pods at once
+  # during a rolling update).
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: contract-ratings
+  template:
+    metadata:
+      labels:
+        app: contract-ratings
+    spec:
+      containers:
+        - name: app
+          image: contract-ratings:local
+          # Use the locally built image on Docker Desktop (don't try to pull).
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: contract-ratings
+                  key: APP_PASSWORD
+            - name: DATA_DIR
+              value: /data
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: contract-ratings-data

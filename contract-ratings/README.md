@@ -113,6 +113,14 @@ deployed API by setting the proxy target to the deployed `api_endpoint`
 Terraform output. There is no local DynamoDB in this setup; it always
 talks to the real tables in AWS.
 
+## Run it as a container (no AWS)
+
+The same app also runs as a single self-contained container — no AWS, no
+network — backed by `node:sqlite` + local disk + a shared password,
+reusing the same API route logic (`lambda/api/core.mjs`). See
+[DOCKER_K8S.md](DOCKER_K8S.md) for building the image and deploying it to
+Kubernetes on Docker Desktop, or running it directly with Node.
+
 ## Seed data (for testing/demo)
 
 `scripts/seed.mjs` writes a few realistic contracts — each with

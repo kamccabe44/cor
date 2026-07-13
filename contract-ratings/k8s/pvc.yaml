@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: contract-ratings-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  # Uses the cluster's default StorageClass. On Docker Desktop that's the
+  # built-in "hostpath" provisioner, so no extra setup is needed.

@@ -1,4 +1,5 @@
 import { getIdToken } from "./auth";
+import { config } from "./config";
 
 // A contract-level contact (lead, POC, or alternate POC). Stored as an
 // element of one of the contract's contact lists. inDate/outDate are only
@@ -68,17 +69,17 @@ class ApiError extends Error {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = await getIdToken();
-  if (!token) throw new ApiError(401, "Not signed in");
+  const headers: Record<string, string> = { "content-type": "application/json", ...(options.headers as Record<string, string>) };
 
-  const res = await fetch(`/api${path}`, {
-    ...options,
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${token}`,
-      ...options.headers,
-    },
-  });
+  // Local/container build authenticates with a same-origin session
+  // cookie (sent automatically), so there's no bearer token to attach.
+  if (!config.localMode) {
+    const token = await getIdToken();
+    if (!token) throw new ApiError(401, "Not signed in");
+    headers.authorization = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`/api${path}`, { ...options, headers });
 
   if (res.status === 204) return undefined as T;
 
