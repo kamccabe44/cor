@@ -1,9 +1,0 @@
-node_modules
-.next
-data
-.git
-.gitignore
-*.md
-npm-debug.log*
-.env*
-k8s
