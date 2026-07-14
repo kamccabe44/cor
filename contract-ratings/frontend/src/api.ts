@@ -13,6 +13,16 @@ export type Contact = {
   outDate: string;
 };
 
+export const ISSUE_STATUSES = ["To-Do", "In Progress", "Blocked", "Resolved"] as const;
+export type IssueStatus = (typeof ISSUE_STATUSES)[number];
+
+// An issue tracked against a contract: free text plus a workflow status.
+export type Issue = {
+  id: string;
+  text: string;
+  status: IssueStatus;
+};
+
 export type Contractor = {
   id: string;
   contractId: string;
@@ -42,6 +52,7 @@ export type Contract = {
   leads: Contact[];
   pocs: Contact[];
   alternatePocs: Contact[];
+  issues: Issue[];
   notes: string;
   agency: string;
   contractValue: number | null;

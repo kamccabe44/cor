@@ -65,6 +65,23 @@ function sanitizeContactList(raw) {
   return Array.isArray(raw) ? raw.slice(0, 200).map(sanitizeContact) : [];
 }
 
+// Issues tracked on a contract: free-text plus a workflow status. An
+// unknown/missing status falls back to "To-Do".
+const ISSUE_STATUSES = ["To-Do", "In Progress", "Blocked", "Resolved"];
+
+function sanitizeIssue(raw) {
+  const c = raw && typeof raw === "object" ? raw : {};
+  return {
+    id: typeof c.id === "string" && c.id ? c.id : crypto.randomUUID(),
+    text: str(c.text, 2000).trim(),
+    status: ISSUE_STATUSES.includes(c.status) ? c.status : "To-Do",
+  };
+}
+
+function sanitizeIssueList(raw) {
+  return Array.isArray(raw) ? raw.slice(0, 500).map(sanitizeIssue) : [];
+}
+
 export function createRouter({ store, files, getUser }) {
   async function pwsDownloadUrl(item) {
     if (!item.pwsKey) return null;
@@ -203,6 +220,7 @@ export function createRouter({ store, files, getUser }) {
       leads: sanitizeContactList(body.leads),
       pocs: sanitizeContactList(body.pocs),
       alternatePocs: sanitizeContactList(body.alternatePocs),
+      issues: sanitizeIssueList(body.issues),
       notes: str(body.notes, 2000),
       pwsKey: "",
       pwsFilename: "",
@@ -236,6 +254,7 @@ export function createRouter({ store, files, getUser }) {
       leads: Array.isArray(body.leads) ? sanitizeContactList(body.leads) : existing.leads,
       pocs: Array.isArray(body.pocs) ? sanitizeContactList(body.pocs) : existing.pocs,
       alternatePocs: Array.isArray(body.alternatePocs) ? sanitizeContactList(body.alternatePocs) : existing.alternatePocs,
+      issues: Array.isArray(body.issues) ? sanitizeIssueList(body.issues) : existing.issues,
       notes: typeof body.notes === "string" ? body.notes.slice(0, 2000) : existing.notes,
       agency: typeof body.agency === "string" ? body.agency.trim() : existing.agency,
       contractValue: typeof body.contractValue === "number" ? body.contractValue : existing.contractValue,

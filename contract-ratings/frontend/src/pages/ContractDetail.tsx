@@ -1,8 +1,9 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { api, uploadToS3, type Contact, type Contract, type Contractor } from "../api";
+import { api, uploadToS3, type Contact, type Contract, type Contractor, type Issue } from "../api";
 import { StarRatingDisplay, StarRatingInput } from "../components/StarRating";
 import { ContactSection } from "../components/ContactSection";
+import { IssuesSection } from "../components/IssuesSection";
 import { UsersIcon } from "../components/Icons";
 
 function Labeled({ label, children }: { label: string; children: ReactNode }) {
@@ -367,6 +368,11 @@ export function ContractDetail() {
     setContract(updated);
   }
 
+  async function saveIssues(next: Issue[]) {
+    const updated = await api.updateContract(id!, { issues: next });
+    setContract(updated);
+  }
+
   async function deleteContract() {
     if (!contract) return;
     if (!confirm(`Delete contract ${contract.contractNumber}? This cannot be undone.`)) return;
@@ -450,6 +456,8 @@ export function ContractDetail() {
           />
         </div>
       </div>
+
+      <IssuesSection issues={contract.issues ?? []} onChange={saveIssues} />
 
       <ContactSection
         title="Leads"

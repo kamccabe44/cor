@@ -228,6 +228,7 @@ function ContractRow({ c }: { c: Contract }) {
   const leads = c.leads ?? [];
   const pocs = c.pocs ?? [];
   const alternatePocs = c.alternatePocs ?? [];
+  const issues = c.issues ?? [];
 
   return (
     <>
@@ -299,6 +300,18 @@ function ContractRow({ c }: { c: Contract }) {
                   alternatePocs.map((x) => (
                     <div key={x.id} style={{ marginBottom: "0.2rem" }}>
                       {contactLine(x, false)}
+                    </div>
+                  ))
+                )}
+              </DetailBlock>
+
+              <DetailBlock title={`Issues (${issues.length})`}>
+                {issues.length === 0 ? (
+                  <span className="meta">None</span>
+                ) : (
+                  issues.map((x) => (
+                    <div key={x.id} style={{ marginBottom: "0.2rem" }}>
+                      {x.text || "—"} <span className="meta">· {x.status}</span>
                     </div>
                   ))
                 )}
