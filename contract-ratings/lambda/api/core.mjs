@@ -74,6 +74,7 @@ function sanitizeIssue(raw) {
   return {
     id: typeof c.id === "string" && c.id ? c.id : crypto.randomUUID(),
     text: str(c.text, 2000).trim(),
+    assignee: str(c.assignee, 200).trim(),
     status: ISSUE_STATUSES.includes(c.status) ? c.status : "To-Do",
   };
 }

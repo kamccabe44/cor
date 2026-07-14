@@ -18,6 +18,7 @@ function IssueRow({
   onRemove: () => Promise<void>;
 }) {
   const [text, setText] = useState(issue.text);
+  const [assignee, setAssignee] = useState(issue.assignee ?? "");
   const [busy, setBusy] = useState(false);
 
   async function persist(next: Issue) {
@@ -29,6 +30,17 @@ function IssueRow({
     }
   }
 
+  // Persist pending text/assignee edits (on blur), carrying an optional
+  // status override so a status change never drops an unsaved text edit.
+  function commit(statusOverride?: IssueStatus) {
+    const t = text.trim();
+    const a = assignee.trim();
+    const status = statusOverride ?? issue.status;
+    if (t !== issue.text || a !== (issue.assignee ?? "") || status !== issue.status) {
+      persist({ ...issue, text: t, assignee: a, status });
+    }
+  }
+
   return (
     <div
       style={{
@@ -37,6 +49,7 @@ function IssueRow({
         alignItems: "center",
         padding: "0.5rem 0",
         borderBottom: "1px solid var(--slate-200)",
+        flexWrap: "wrap",
       }}
     >
       <span
@@ -46,17 +59,20 @@ function IssueRow({
       <input
         value={text}
         onChange={(e) => setText(e.target.value)}
-        onBlur={() => {
-          if (text.trim() !== issue.text) persist({ ...issue, text: text.trim() });
-        }}
+        onBlur={() => commit()}
         disabled={busy}
-        style={{ flex: 1, minWidth: 0 }}
+        placeholder="Issue"
+        style={{ flex: 1, minWidth: 160 }}
       />
-      <select
-        value={issue.status}
-        onChange={(e) => persist({ ...issue, status: e.target.value as IssueStatus })}
+      <input
+        value={assignee}
+        onChange={(e) => setAssignee(e.target.value)}
+        onBlur={() => commit()}
         disabled={busy}
-      >
+        placeholder="Assigned to"
+        style={{ width: 150 }}
+      />
+      <select value={issue.status} onChange={(e) => commit(e.target.value as IssueStatus)} disabled={busy}>
         {ISSUE_STATUSES.map((s) => (
           <option key={s} value={s}>
             {s}
@@ -79,6 +95,7 @@ export function IssuesSection({
 }) {
   const [adding, setAdding] = useState(false);
   const [text, setText] = useState("");
+  const [assignee, setAssignee] = useState("");
   const [status, setStatus] = useState<IssueStatus>("To-Do");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,15 +110,20 @@ export function IssuesSection({
     }
   }
 
+  function resetForm() {
+    setText("");
+    setAssignee("");
+    setStatus("To-Do");
+    setAdding(false);
+  }
+
   async function add(e: FormEvent) {
     e.preventDefault();
     if (!text.trim()) return;
     setBusy(true);
     try {
-      await run([...issues, { id: crypto.randomUUID(), text: text.trim(), status }]);
-      setText("");
-      setStatus("To-Do");
-      setAdding(false);
+      await run([...issues, { id: crypto.randomUUID(), text: text.trim(), assignee: assignee.trim(), status }]);
+      resetForm();
     } catch {
       /* error already surfaced */
     } finally {
@@ -142,7 +164,13 @@ export function IssuesSection({
             onChange={(e) => setText(e.target.value)}
             placeholder="Describe the issue…"
             autoFocus
-            style={{ flex: 1, minWidth: 220 }}
+            style={{ flex: 1, minWidth: 200 }}
+          />
+          <input
+            value={assignee}
+            onChange={(e) => setAssignee(e.target.value)}
+            placeholder="Assigned to"
+            style={{ width: 150 }}
           />
           <select value={status} onChange={(e) => setStatus(e.target.value as IssueStatus)}>
             {ISSUE_STATUSES.map((s) => (
@@ -154,15 +182,7 @@ export function IssuesSection({
           <button type="submit" className="btn btn-primary" disabled={busy}>
             {busy ? "Saving…" : "Save"}
           </button>
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={() => {
-              setText("");
-              setStatus("To-Do");
-              setAdding(false);
-            }}
-          >
+          <button type="button" className="btn btn-outline" onClick={resetForm}>
             Cancel
           </button>
         </form>

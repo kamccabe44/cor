@@ -20,6 +20,7 @@ export type IssueStatus = (typeof ISSUE_STATUSES)[number];
 export type Issue = {
   id: string;
   text: string;
+  assignee: string;
   status: IssueStatus;
 };
 

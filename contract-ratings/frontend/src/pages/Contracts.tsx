@@ -311,7 +311,9 @@ function ContractRow({ c }: { c: Contract }) {
                 ) : (
                   issues.map((x) => (
                     <div key={x.id} style={{ marginBottom: "0.2rem" }}>
-                      {x.text || "—"} <span className="meta">· {x.status}</span>
+                      {x.text || "—"}
+                      {x.assignee && <span className="meta"> · {x.assignee}</span>}
+                      <span className="meta"> · {x.status}</span>
                     </div>
                   ))
                 )}
