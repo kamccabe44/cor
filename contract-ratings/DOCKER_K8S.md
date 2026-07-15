@@ -102,3 +102,13 @@ with the server and the shared core into a small `node:22-slim` image.
 - **Multiple replicas** would need a fixed `APP_SESSION_SECRET` (so cookies
   validate across pods) and a real database — out of scope for this
   single-box build.
+
+## Linking it from `os_alerts` as an optional add-on
+
+The `os_alerts` app can surface this container deployment as an optional,
+per-customer add-on — a "Contract Ratings" link in its nav and an Add-ons
+card on the account dashboard. Once this container is reachable at a URL,
+set `CONTRACT_RATINGS_URL` to it in `os_alerts` and (in multi-tenant mode)
+enable the add-on per account. The two apps stay fully independent: it's
+just a link — no shared auth, session, or data. See the `os_alerts` README
+("Contract Ratings add-on") for details.
