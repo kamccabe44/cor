@@ -103,12 +103,18 @@ with the server and the shared core into a small `node:22-slim` image.
   validate across pods) and a real database — out of scope for this
   single-box build.
 
-## Linking it from `os_alerts` as an optional add-on
+## Using it as an `os_alerts` add-on
 
-The `os_alerts` app can surface this container deployment as an optional,
-per-customer add-on — a "Contract Ratings" link in its nav and an Add-ons
-card on the account dashboard. Once this container is reachable at a URL,
-set `CONTRACT_RATINGS_URL` to it in `os_alerts` and (in multi-tenant mode)
-enable the add-on per account. The two apps stay fully independent: it's
-just a link — no shared auth, session, or data. See the `os_alerts` README
-("Contract Ratings add-on") for details.
+The `os_alerts` app offers this app as an optional, per-customer **COR**
+add-on, in two modes:
+
+- **Link-only** — point `CONTRACT_RATINGS_URL` at a running instance (like the
+  one above) and os_alerts shows a link. Simplest; works anywhere.
+- **Provisioning** — os_alerts deploys a dedicated instance *per tenant* on
+  demand, at `cor.<subdomain>.<base_domain>`. That path uses the Helm chart in
+  [`helm/contract-ratings/`](helm/contract-ratings/) and the image/chart pushed
+  to ECR by [`scripts/publish-ecr.sh`](scripts/publish-ecr.sh).
+
+Either way the apps stay fully independent — just a link or a separate
+deployment, no shared auth, session, or data. See the `os_alerts`
+`COR_ADDON.md` for the full runbook.
