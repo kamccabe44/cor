@@ -1,0 +1,11 @@
+apiVersion: v2
+name: contract-ratings
+description: >-
+  One self-contained Contract Ratings (COR) instance for a single tenant.
+  Deployed on demand by the os_alerts app when a customer enables the COR
+  add-on: a Node + node:sqlite container behind a shared password, reachable
+  at cor.<subdomain>.<base_domain> via Traefik + cert-manager.
+type: application
+version: 0.1.0
+# The app is versioned by its container image tag, not the chart.
+appVersion: "1.0"

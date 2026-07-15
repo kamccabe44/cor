@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "contract-ratings.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "contract-ratings.labels" . | nindent 4 }}
+spec:
+  # ClusterIP: reached only through the Ingress (Traefik), never directly.
+  type: ClusterIP
+  selector:
+    {{- include "contract-ratings.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: http

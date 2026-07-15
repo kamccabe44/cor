@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "contract-ratings.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "contract-ratings.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  # SQLite is a single-writer store on a ReadWriteOnce volume, so run one
+  # replica and use Recreate (the volume can't attach to two pods at once
+  # during a rolling update).
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "contract-ratings.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "contract-ratings.selectorLabels" . | nindent 8 }}
+      annotations:
+        # Roll the pod when the password/session secret changes.
+        checksum/auth: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: app
+          {{- if not .Values.image.repository }}
+          {{- fail "image.repository is required (registry ref for the contract-ratings image)" }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+          env:
+            - name: PORT
+              value: {{ .Values.service.targetPort | quote }}
+            - name: DATA_DIR
+              value: /data
+            - name: APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "contract-ratings.authSecretName" . }}
+                  key: APP_PASSWORD
+            {{- if .Values.auth.sessionSecret }}
+            - name: APP_SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "contract-ratings.authSecretName" . }}
+                  key: APP_SESSION_SECRET
+            {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "contract-ratings.fullname" . }}-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,76 @@
+# Default values for one tenant's Contract Ratings (COR) instance.
+#
+# The os_alerts provisioner installs one release per tenant, typically as
+# `cor-<subdomain>` in the `cor-tenants` namespace, overriding `tenant`,
+# `image.repository`, `ingress.host`, and `auth.appPassword`.
+
+# Tenant this release belongs to (the os_alerts account subdomain, e.g. "1136").
+# Used to derive resource names, labels, and the default host. Required.
+tenant: ""
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  # Registry reference for the built contract-ratings image, e.g.
+  # <account>.dkr.ecr.us-east-1.amazonaws.com/contract-ratings. Required.
+  repository: ""
+  tag: "latest"
+  # The k3s node pulls from the registry, so Always/IfNotPresent both work;
+  # IfNotPresent avoids re-pulling an already-cached tag.
+  pullPolicy: IfNotPresent
+# Only needed if the registry requires a pull secret. With ECR + an EC2
+# instance role (the k3s node's IAM), leave empty — the kubelet credential
+# provider authenticates the node.
+imagePullSecrets: []
+
+# Shared-password auth — the one password that gates this instance. A Secret
+# is created from these values.
+auth:
+  # Required. Generated per tenant by the provisioner.
+  appPassword: ""
+  # Optional fixed session-signing secret. Blank => the server derives one from
+  # the password (fine for a single replica, which is all this chart runs).
+  sessionSecret: ""
+
+persistence:
+  enabled: true
+  # SQLite DB + PWS uploads live here on a ReadWriteOnce volume.
+  size: 1Gi
+  # "" => cluster default StorageClass (k3s local-path).
+  storageClass: ""
+
+service:
+  port: 80
+  targetPort: 8080
+
+ingress:
+  enabled: true
+  className: traefik
+  # Full host for this tenant, e.g. cor.1136.31traino.com. Required when
+  # ingress.enabled. The os_alerts provisioner also creates the matching
+  # Route53 A-record -> the k3s box, so cert-manager's HTTP-01 challenge
+  # resolves.
+  host: ""
+  # cert-manager ClusterIssuer that mints the per-host Let's Encrypt cert.
+  # Must already exist on the cluster (created by scripts/k3s-setup.sh).
+  clusterIssuer: "letsencrypt-prod"
+  # Extra annotations merged onto the Ingress (the cluster-issuer annotation
+  # is added automatically from clusterIssuer above).
+  annotations: {}
+  # TLS secret cert-manager writes the issued cert into. "" => <fullname>-tls.
+  tlsSecretName: ""
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 96Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+podSecurityContext: {}
+securityContext: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

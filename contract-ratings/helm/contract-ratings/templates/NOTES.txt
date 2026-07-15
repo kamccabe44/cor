@@ -1,0 +1,14 @@
+Contract Ratings (COR) for tenant "{{ .Values.tenant | default .Release.Name }}" deployed.
+
+  Release:    {{ .Release.Name }}
+  Namespace:  {{ .Release.Namespace }}
+{{- if .Values.ingress.enabled }}
+  URL:        https://{{ .Values.ingress.host }}
+{{- end }}
+
+Sign in with the shared password stored in Secret
+"{{ include "contract-ratings.authSecretName" . }}" (key APP_PASSWORD).
+
+TLS is issued by cert-manager (ClusterIssuer {{ .Values.ingress.clusterIssuer }})
+once {{ .Values.ingress.host }} resolves to the k3s box — the os_alerts
+provisioner creates that Route53 record. First issuance can take 1–2 minutes.
