@@ -18,7 +18,7 @@ image:
   tag: "latest"
   # The k3s node pulls from the registry, so Always/IfNotPresent both work;
   # IfNotPresent avoids re-pulling an already-cached tag.
-  pullPolicy: IfNotPresent
+  pullPolicy: "Always"
 # Only needed if the registry requires a pull secret. With ECR + an EC2
 # instance role (the k3s node's IAM), leave empty — the kubelet credential
 # provider authenticates the node.
