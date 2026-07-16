@@ -32,6 +32,10 @@ auth:
   # Optional fixed session-signing secret. Blank => the server derives one from
   # the password (fine for a single replica, which is all this chart runs).
   sessionSecret: ""
+  # Optional SSO secret shared with the issuer (os_alerts). When set, a signed,
+  # short-lived token at /__sso starts a session without the password — used so
+  # an authenticated ALERTS user walks straight in. Blank => SSO disabled.
+  ssoSecret: ""
 
 persistence:
   enabled: true

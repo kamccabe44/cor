@@ -18,6 +18,11 @@ const DATA_DIR = process.env.DATA_DIR || resolve("./.local");
 const STATIC_DIR = resolve(process.env.STATIC_DIR || "./public");
 const PASSWORD = process.env.APP_PASSWORD || "";
 const SECRET = process.env.APP_SESSION_SECRET || `session:${PASSWORD}`;
+// Optional SSO: when set, a signed, short-lived token from a trusted issuer
+// (the os_alerts app, which provisions this instance and shares this secret)
+// can start a session at /__sso — so an already-authenticated ALERTS user
+// walks straight in without the shared password. Blank = SSO disabled.
+const SSO_SECRET = process.env.APP_SSO_SECRET || "";
 const COOKIE = "cr_session";
 const MAX_JSON_BYTES = 1_000_000;
 
@@ -29,6 +34,8 @@ if (!PASSWORD) {
 const store = createSqliteStore(join(DATA_DIR, "contract-ratings.db"));
 const files = createDiskFiles(join(DATA_DIR, "pws"));
 const auth = createAuth({ password: PASSWORD, secret: SECRET });
+// Verifier for inbound SSO tokens (only `secret` is used from this instance).
+const sso = SSO_SECRET ? createAuth({ password: "", secret: SSO_SECRET }) : null;
 
 const API_ROUTES = [
   ["GET", /^\/api\/contracts$/, "GET /api/contracts"],
@@ -183,6 +190,17 @@ const server = createServer(async (req, res) => {
     if (pathname === "/api/logout" && req.method === "POST") {
       clearSessionCookie(res);
       return sendJson(res, 200, { ok: true });
+    }
+
+    // Single sign-on landing: a trusted issuer (os_alerts) redirects an already
+    // authenticated user here with a short-lived token signed by APP_SSO_SECRET.
+    // Verify it, mint a normal session cookie, and bounce to the app — no
+    // password prompt. Invalid/expired tokens fall through to the login screen.
+    if (pathname === "/__sso" && req.method === "GET") {
+      const payload = sso ? sso.verify(url.searchParams.get("token")) : null;
+      if (payload) setSessionCookie(res, auth.issue(payload.name || "ALERTS user"));
+      res.writeHead(302, { Location: payload ? "/" : "/?sso=denied" });
+      return res.end();
     }
 
     const needsAuth = pathname.startsWith("/api/") || pathname.startsWith("/__pws/");

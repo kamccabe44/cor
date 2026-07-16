@@ -62,6 +62,13 @@ spec:
                   name: {{ include "contract-ratings.authSecretName" . }}
                   key: APP_SESSION_SECRET
             {{- end }}
+            {{- if .Values.auth.ssoSecret }}
+            - name: APP_SSO_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "contract-ratings.authSecretName" . }}
+                  key: APP_SSO_SECRET
+            {{- end }}
           volumeMounts:
             - name: data
               mountPath: /data
