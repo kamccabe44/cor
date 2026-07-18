@@ -52,6 +52,10 @@ function Shell({ children }: { children: JSX.Element }) {
           </Link>
           <NavLinks />
           <div className="header-spacer">
+            <a className="header-back" href="/report" target="_blank" rel="noopener"
+               title="Generate a printable report (PDF) or Excel/CSV export">
+              Generate Report
+            </a>
             {parentUrl && (
               <a className="header-back" href={parentUrl} title="Back to the main PEACEMAKER site">
                 ← PEACEMAKER

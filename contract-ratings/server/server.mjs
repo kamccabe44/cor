@@ -162,6 +162,113 @@ async function serveStatic(res, pathname) {
   return pipeline(createReadStream(filePath), res);
 }
 
+// ── Report generation (Excel/CSV + printable PDF) ─────────────────────────────
+// Zero-dependency: CSV opens directly in Excel; the HTML report prints to PDF
+// from the browser. Both read straight from the local store.
+
+function buildReport() {
+  const contracts = (store.scanContracts() || []).map((c) => ({
+    ...c,
+    contractors: store.queryContractorsByContract(c.id) || [],
+  }));
+  contracts.sort((a, b) =>
+    String(a.contractNumber || "").localeCompare(String(b.contractNumber || ""), undefined, { numeric: true })
+  );
+  return { generatedAt: new Date().toISOString(), contracts };
+}
+
+function contactNames(list) {
+  return (Array.isArray(list) ? list : []).map((c) => (c && c.name) || "").filter(Boolean).join("; ");
+}
+function openIssueCount(list) {
+  return (Array.isArray(list) ? list : []).filter((i) => {
+    const s = ((i && i.status) || "").toLowerCase();
+    return s !== "resolved" && s !== "closed";
+  }).length;
+}
+function ratingText(item) {
+  const n = Number(item && item.ratingCount) || 0;
+  return n ? `${(Number(item.avgRating) || 0).toFixed(1)}★ (${n})` : "—";
+}
+function csvCell(v) {
+  const s = v == null ? "" : String(v);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+function reportCsv(report) {
+  const headers = ["Contract Number", "Title", "Agency", "Value", "Start", "End",
+    "Avg Rating", "# Ratings", "Contractors", "Leads", "POCs", "Open Issues", "Notes"];
+  const lines = [headers.map(csvCell).join(",")];
+  for (const c of report.contracts) {
+    const contractors = (c.contractors || [])
+      .map((k) => `${k.company}${k.ratingCount ? ` (${(Number(k.avgRating) || 0).toFixed(1)}/${k.ratingCount})` : ""}`)
+      .join("; ");
+    lines.push([
+      c.contractNumber, c.title, c.agency,
+      c.contractValue != null ? c.contractValue : "",
+      c.contractStart, c.contractEnd,
+      Number(c.ratingCount) ? (Number(c.avgRating) || 0).toFixed(1) : "",
+      c.ratingCount || 0, contractors,
+      contactNames(c.leads), contactNames(c.pocs),
+      openIssueCount(c.issues), c.notes || "",
+    ].map(csvCell).join(","));
+  }
+  return "﻿" + lines.join("\r\n"); // BOM so Excel reads UTF-8 cleanly
+}
+function escHtml(v) {
+  return String(v == null ? "" : v).replace(/[&<>"']/g,
+    (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+}
+function reportHtml(report) {
+  const when = new Date(report.generatedAt).toLocaleString();
+  const body = report.contracts.map((c) => {
+    const subs = (c.contractors || []).length
+      ? `<table class="sub"><thead><tr><th>Contractor</th><th>CAGE</th><th>UEI/SAM</th><th>Rating</th></tr></thead><tbody>`
+        + c.contractors.map((k) =>
+            `<tr><td>${escHtml(k.company)}</td><td>${escHtml(k.cageCode)}</td><td>${escHtml(k.ueiSam)}</td><td>${escHtml(ratingText(k))}</td></tr>`).join("")
+        + `</tbody></table>`
+      : `<p class="muted">No contractors recorded.</p>`;
+    return `<section class="contract">
+      <h2>${escHtml(c.contractNumber || "(no number)")} &mdash; ${escHtml(c.title || "")}</h2>
+      <div class="meta">
+        <span><b>Agency:</b> ${escHtml(c.agency || "—")}</span>
+        <span><b>Value:</b> ${c.contractValue != null ? "$" + escHtml(Number(c.contractValue).toLocaleString()) : "—"}</span>
+        <span><b>Period:</b> ${escHtml(c.contractStart || "—")} &rarr; ${escHtml(c.contractEnd || "—")}</span>
+        <span><b>Rating:</b> ${escHtml(ratingText(c))}</span>
+        <span><b>Open issues:</b> ${openIssueCount(c.issues)}</span>
+      </div>
+      ${c.leads && c.leads.length ? `<p><b>Leads:</b> ${escHtml(contactNames(c.leads))}</p>` : ""}
+      ${c.pocs && c.pocs.length ? `<p><b>POCs:</b> ${escHtml(contactNames(c.pocs))}</p>` : ""}
+      ${c.notes ? `<p><b>Notes:</b> ${escHtml(c.notes)}</p>` : ""}
+      ${subs}
+    </section>`;
+  }).join("");
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Contract Ratings Report</title>
+<style>
+ body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#1a2a1a;margin:2rem;max-width:960px}
+ h1{font-size:1.4rem;margin:0 0 .2rem}.when{color:#667;margin:0 0 1.2rem;font-size:.85rem}
+ .toolbar{margin:0 0 1.5rem;display:flex;gap:.5rem}
+ .btn{padding:.5rem 1rem;border:1px solid #3a5a3a;background:#3a7a3a;color:#fff;border-radius:6px;text-decoration:none;font-size:.9rem;cursor:pointer}
+ .btn.alt{background:#fff;color:#2a4a2a}
+ .contract{border:1px solid #d8e0d8;border-radius:8px;padding:1rem 1.25rem;margin:0 0 1rem;page-break-inside:avoid}
+ .contract h2{font-size:1.05rem;margin:0 0 .5rem}
+ .meta{display:flex;flex-wrap:wrap;gap:.25rem 1.25rem;font-size:.85rem;margin-bottom:.5rem}
+ .muted{color:#889;font-size:.85rem}
+ table.sub{border-collapse:collapse;width:100%;font-size:.82rem;margin-top:.5rem}
+ table.sub th,table.sub td{border:1px solid #dde;padding:.3rem .5rem;text-align:left}
+ table.sub th{background:#f2f6f2}
+ @media print{.toolbar{display:none}body{margin:.5rem}}
+</style></head><body>
+<h1>Contract Ratings &mdash; Report</h1>
+<p class="when">Generated ${escHtml(when)} &middot; ${report.contracts.length} contract(s)</p>
+<div class="toolbar">
+  <button class="btn" onclick="window.print()">Print / Save as PDF</button>
+  <a class="btn alt" href="/report/export.csv">Download CSV (Excel)</a>
+</div>
+${body || '<p class="muted">No contracts recorded yet.</p>'}
+</body></html>`;
+}
+
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url, "http://localhost");
@@ -201,6 +308,23 @@ const server = createServer(async (req, res) => {
       if (payload) setSessionCookie(res, auth.issue(payload.name || "ALERTS user"));
       res.writeHead(302, { Location: payload ? "/" : "/?sso=denied" });
       return res.end();
+    }
+
+    // Report: a printable HTML report (Print → Save as PDF) and a CSV (Excel).
+    // Session-gated; not under /api so it's checked explicitly here.
+    if (pathname === "/report" || pathname === "/report/export.csv") {
+      if (!getSession(req)) { res.writeHead(302, { Location: "/" }); return res.end(); }
+      const report = buildReport();
+      if (pathname === "/report/export.csv") {
+        res.writeHead(200, {
+          "content-type": "text/csv; charset=utf-8",
+          "content-disposition": 'attachment; filename="contract-ratings-report.csv"',
+          "cache-control": "no-store",
+        });
+        return res.end(reportCsv(report));
+      }
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
+      return res.end(reportHtml(report));
     }
 
     const needsAuth = pathname.startsWith("/api/") || pathname.startsWith("/__pws/");
