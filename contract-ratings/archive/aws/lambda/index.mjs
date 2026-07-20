@@ -1,7 +1,9 @@
-// AWS Lambda entry point. Wires the backend-agnostic core (core.mjs) to
-// DynamoDB, S3 presigned URLs, and the Cognito JWT claims that API
-// Gateway puts on the event. The route logic itself lives in core.mjs and
-// is shared with the container build (../../server).
+// AWS Lambda entry point (ARCHIVED deployment — see ../README.md). Wires
+// the backend-agnostic core to DynamoDB, S3 presigned URLs, and the
+// Cognito JWT claims that API Gateway puts on the event. The route logic
+// lives with the live container app at ../../../api/core.mjs; the
+// terraform packaging (../terraform/lambda.tf) zips it in next to this
+// file, which is why the import below stays "./core.mjs".
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   DynamoDBDocumentClient,

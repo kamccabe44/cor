@@ -1,103 +1,39 @@
 # Contract Ratings
 
-A slim, fully serverless companion app: contracting officers and CORs log
-contracts and contractors and rate them 1–5 stars. Separate from the COR
-Tracker app in `../app` and `../terraform` — no EC2, no k3s, nothing to
-patch or scale-to-zero. Everything here either doesn't run at all until
-invoked (Lambda, API Gateway) or is a static file served by CloudFront.
+A slim companion app: contracting officers and CORs log contracts and
+contractors and rate them 1–5 stars. One shared API core
+([`api/core.mjs`](api/core.mjs)) behind thin per-environment adapters.
 
-## Architecture
+**The primary deployment is the self-contained container** — one Node
+process serving the built SPA and `/api`, backed by `node:sqlite` and
+local disk, gated by a shared password. No AWS at runtime. It runs as an
+add-on pod for the **ALERTS** (`os_alerts`) app:
+
+- **In-cluster pod** — deployed next to ALERTS by the `os_alerts` repo's
+  `k8s/` manifests (`cor-*.yaml`); ALERTS links to it via
+  `CONTRACT_RATINGS_URL`.
+- **Per-tenant provisioning** — ALERTS Helm-installs
+  [`helm/contract-ratings/`](helm/contract-ratings/) per customer at
+  `cor.<subdomain>.<base_domain>` (see `os_alerts` `COR_ADDON.md`).
+- **Standalone** — [`k8s/`](k8s/) deploys it by itself on Docker Desktop
+  Kubernetes, or run it directly with Node.
+
+Building the image, running without Kubernetes, and the k8s/Helm details
+are in [DOCKER_K8S.md](DOCKER_K8S.md).
+
+## Architecture (container)
 
 ```
-Browser → https://cor.1136mpco.com (Route53 alias)
-        → CloudFront (one distribution, two origins)
-              ├─ default behavior "/*"     → S3 (the built React SPA)
-              └─ ordered behavior "/api/*" → API Gateway (HTTP API)
-                                                  → JWT authorizer (Cognito)
-                                                  → Lambda "contract-ratings-api"
-                                                        → DynamoDB (3 tables)
+Browser → http(s)://<host>/          one Node process (server/server.mjs)
+              ├─ static SPA          built with VITE_LOCAL_MODE=1
+              ├─ /api/*              shared core (api/core.mjs) → node:sqlite
+              ├─ /__pws/*            PWS uploads/downloads on local disk
+              └─ shared password     HttpOnly session cookie (APP_PASSWORD)
 ```
 
-- **Auth**: reuses your existing Cognito User Pool (the one already
-  backing `os_alerts`) — this stack does not create or modify the pool,
-  it only adds its own App Client inside it (`cognito.tf`), scoped for
-  direct SRP sign-in (`amazon-cognito-identity-js` in the frontend, no
-  Hosted UI redirect). API Gateway validates the resulting ID token
-  itself via a JWT authorizer; the Lambda never re-verifies it.
-- **One domain, no CORS**: the SPA and the API are both served from
-  `cor.1136mpco.com` — CloudFront just routes by path (`/api/*` vs
-  everything else), so the browser never makes a cross-origin request.
-- **Data model** (`terraform/dynamodb.tf`): `contract-ratings-contractors`,
-  `contract-ratings-contracts` (with a `byContractor` GSI), and
-  `contract-ratings-ratings` (one item per user per target, PK
-  `CONTRACTOR#<id>` / `CONTRACT#<id>`, SK = Cognito `sub`). Rating a
-  contract/contractor upserts the caller's rating row, recomputes the
-  average from all ratings for that target, and writes `avgRating` /
-  `ratingCount` back onto the parent item so list pages don't need an
-  extra query per row.
-- **PWS document uploads** (`terraform/s3-pws.tf`): each contract can
-  have a PWS file stored in a private S3 bucket
-  (`contract-ratings-pws-<account>`). The browser never sends the file
-  through the API — it asks the Lambda for a short-lived **presigned PUT
-  URL** and uploads straight to S3 (so there's no ~6 MB API Gateway
-  payload limit), then records the object key on the contract. Downloads
-  use a presigned GET URL the Lambda mints on `getContract`, so the
-  bucket stays fully private. The bucket has a CORS rule allowing PUT/GET
-  from the app's domain (required for the browser's direct upload).
-
-## This takes over `cor.1136mpco.com` from the old EC2/k3s deployment
-
-Both this stack and `../terraform` (the EC2/k3s COR Tracker) try to own
-the same Route53 record for `cor.1136mpco.com`. Per the decision to park
-the old deployment and move the domain here, **detach the domain from the
-old stack before applying this one**:
-
-```bash
-cd ../terraform
-terraform destroy \
-  -target=aws_route53_record.cor \
-  -target=aws_apigatewayv2_api_mapping.cor \
-  -target=aws_apigatewayv2_domain_name.cor
-```
-
-This only removes the DNS record and the API Gateway custom domain
-mapping — it does **not** touch the EC2 instance, its EBS volume/data, the
-VPC, or anything else in that stack, so it stays available to bring back
-later (`terraform apply` there again, then reverse the two `-target`
-destroys' effect by re-applying normally). The instance itself is already
-scale-to-zero, so leaving it fully intact and just unplugged from DNS
-costs nothing while stopped.
-
-## Prerequisites
-
-- An existing Cognito User Pool ID (from `os_alerts` or wherever) —
-  find it with:
-  ```bash
-  aws cognito-idp list-user-pools --max-results 20 --query 'UserPools[].{Id:Id,Name:Name}' --output table
-  ```
-- Node.js 20+ and npm, for building the frontend.
-- Same AWS CLI / Terraform prerequisites as `../terraform` (see that
-  README for the local Terraform provider mirror workaround if
-  `registry.terraform.io` is unreachable).
-
-## Deploying
-
-```bash
-cd terraform
-./deploy.sh --cognito-user-pool-id us-east-1_XXXXXXXXX
-```
-
-This runs `terraform apply` (DynamoDB, Lambda, API Gateway, the new
-Cognito App Client, S3, CloudFront, ACM cert, Route53), then writes
-`../frontend/.env.production` from the resulting outputs, builds the SPA,
-syncs it to the S3 bucket, and invalidates the CloudFront cache. The
-`cognito_user_pool_id` you pass once is remembered in
-`terraform/local.auto.tfvars` (gitignored) for later runs — `./deploy.sh`
-alone is enough after the first time.
-
-Run `./deploy.sh --plan-only` to see the Terraform plan without applying
-or touching the frontend, or `./deploy.sh --destroy` to tear this whole
-stack down (does not touch the old EC2 stack).
+All state lives under `DATA_DIR` (`/data` in the container): the SQLite
+database plus the `pws/` folder. Copy that directory to back up or move
+an instance.
 
 ## Local development
 
@@ -107,42 +43,34 @@ npm install
 npm run dev
 ```
 
-The Vite dev server proxies `/api/*` to `http://localhost:3001` — either
-point that at a local Lambda-invoking shim, or just develop against the
-deployed API by setting the proxy target to the deployed `api_endpoint`
-Terraform output. There is no local DynamoDB in this setup; it always
-talks to the real tables in AWS.
+The Vite dev server proxies `/api/*` to `http://localhost:3001` — run the
+container server there (`cd server && APP_PASSWORD=changeme PORT=3001 node
+server.mjs`) for a fully local loop.
 
-## Run it as a container (no AWS)
+## Seed / demo data
 
-The same app also runs as a single self-contained container — no AWS, no
-network — backed by `node:sqlite` + local disk + a shared password,
-reusing the same API route logic (`lambda/api/core.mjs`). See
-[DOCKER_K8S.md](DOCKER_K8S.md) for building the image and deploying it to
-Kubernetes on Docker Desktop, or running it directly with Node.
-
-## Seed data (for testing/demo)
-
-`scripts/seed.mjs` writes a few realistic contracts — each with
-contract-level leads/POCs/alternate POCs, nested contractors, and
-ratings — straight into the DynamoDB tables using your ambient AWS
-credentials (it does not go through Cognito/API Gateway):
+[`scripts/`](scripts/) holds JSON seed documents (e.g.
+`seed-data-kuwait.json`, sample contracts for Camp Arifjan / Camp
+Buehring). The easiest way to load one is the **Import** button on the
+app's Contracts page — pick the JSON file and it creates the contracts,
+contractors, and ratings. The same import is also scriptable with
+`import-local.mjs` against a **running** instance:
 
 ```bash
 cd scripts
-npm install
-node seed.mjs          # write seed data
-node seed.mjs --wipe   # remove everything it created
+node import-local.mjs --file seed-data-kuwait.json \
+  --url http://localhost:8080 --password '<APP_PASSWORD>'
 ```
 
-Everything it creates is prefixed `seed-`, so `--wipe` removes exactly
-the seed rows and nothing else. Table names/region can be overridden with
-`CONTRACTS_TABLE` / `CONTRACTORS_TABLE` / `RATINGS_TABLE` / `AWS_REGION`.
+Re-runs skip contracts that already exist, so importing is idempotent.
 
-## Cost
+## Archived: AWS serverless variant
 
-Every piece here is pay-per-use with no idle cost: DynamoDB on-demand,
-Lambda, API Gateway, and CloudFront/S3 are all effectively free at low
-traffic (a handful of CORs logging in occasionally). The only fixed cost
-is Route53's per-hosted-zone fee, which you're already paying for
-`1136mpco.com`.
+The original serverless deployment (Cognito + API Gateway + Lambda +
+DynamoDB + S3/CloudFront at `cor.1136mpco.com`) is **parked** in
+[`archive/aws/`](archive/aws/) — handler, full terraform (with
+`deploy.sh`), and the DynamoDB seeder — in case the standalone stack is
+ever wanted again. It reuses the same `api/core.mjs` (packaged in at
+deploy time) and the frontend's Cognito build mode. See
+[`archive/aws/README.md`](archive/aws/README.md) for what's there and how
+to revive it.

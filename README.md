@@ -1,34 +1,39 @@
 # Contract Ratings
 
 A slim app for logging contracts and contractors and rating them 1–5
-stars. One shared API core, two ways to run it:
+stars. One shared API core, one primary way to run it:
 
-- **AWS serverless** — Cognito + API Gateway + Lambda + DynamoDB + S3,
-  fronted by CloudFront. Code in [`contract-ratings/lambda/`](contract-ratings/lambda/),
-  infra in [`contract-ratings/terraform/`](contract-ratings/terraform/).
-- **Self-contained container** — one Node process backed by `node:sqlite`,
-  local disk, and a shared password. No AWS, no network. Deployable on
-  Kubernetes (Docker Desktop). See
-  [`contract-ratings/DOCKER_K8S.md`](contract-ratings/DOCKER_K8S.md).
+- **Self-contained container** (primary) — one Node process backed by
+  `node:sqlite`, local disk, and a shared password. No AWS at runtime.
+  Runs as an add-on pod alongside the **ALERTS** (`os_alerts`) app — either
+  in the same Kubernetes cluster or provisioned per tenant by ALERTS via
+  the Helm chart. See
+  [`contract-ratings/DOCKER_K8S.md`](contract-ratings/DOCKER_K8S.md) and
+  the `os_alerts` repo's `COR_ADDON.md`.
+- **AWS serverless** (archived) — Cognito + API Gateway + Lambda +
+  DynamoDB + S3, fronted by CloudFront. Parked, intact, in
+  [`contract-ratings/archive/aws/`](contract-ratings/archive/aws/) in case
+  the standalone stack is ever needed again.
 
-The two deployments share the route logic in
-`contract-ratings/lambda/api/core.mjs`; everything else is a thin
-per-environment adapter. Full details:
+Both share the route logic in
+[`contract-ratings/api/core.mjs`](contract-ratings/api/core.mjs);
+everything else is a thin per-environment adapter. Full details:
 [`contract-ratings/README.md`](contract-ratings/README.md).
 
 ## Repository layout
 
 ```
 contract-ratings/
-  frontend/     Vite + React + TypeScript SPA (Cognito or shared-password auth)
-  lambda/api/   core.mjs (shared route logic) + index.mjs (AWS Lambda handler)
+  api/          core.mjs — shared route logic (used by both variants)
+  frontend/     Vite + React + TypeScript SPA (shared-password or Cognito auth)
   server/       container HTTP server (node:sqlite + disk + password)
-  terraform/    AWS infra for the serverless deployment
-  Dockerfile    container image for the k8s deployment
-  k8s/          Kubernetes manifests (Docker Desktop)
-  scripts/      seed data
+  Dockerfile    container image (the primary deployment)
+  k8s/          Kubernetes manifests (Docker Desktop / standalone)
+  helm/         Helm chart (used by os_alerts per-tenant provisioning)
+  scripts/      seed documents + importer, ECR publish script
+  archive/aws/  parked AWS serverless variant (Lambda handler, terraform, DynamoDB seeder)
 ```
 
 > The top-level `terraform/` directory is the **legacy** EC2/k3s COR
 > Tracker stack, retained only until its AWS resources are destroyed. It
-> is not part of either current deployment and will be removed.
+> is not part of any current deployment and will be removed.

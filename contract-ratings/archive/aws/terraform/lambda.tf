@@ -1,7 +1,19 @@
+# The handler lives in the archive next to this stack; the shared route
+# core stays with the live container app (../../../api/core.mjs) and is
+# packaged in beside index.mjs, which imports it as "./core.mjs".
 data "archive_file" "api" {
   type        = "zip"
-  source_dir  = "${path.module}/../lambda/api"
   output_path = "${path.module}/.build/api.zip"
+
+  source {
+    content  = file("${path.module}/../lambda/index.mjs")
+    filename = "index.mjs"
+  }
+
+  source {
+    content  = file("${path.module}/../../../api/core.mjs")
+    filename = "core.mjs"
+  }
 }
 
 resource "aws_iam_role" "api" {

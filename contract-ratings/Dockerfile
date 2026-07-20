@@ -21,9 +21,9 @@ ENV NODE_ENV=production \
     PORT=8080
 
 # The server has no npm dependencies (Node built-ins only). It reuses the
-# shared route logic from ../lambda/api/core.mjs, so keep that relative path.
+# shared route logic from ../api/core.mjs, so keep that relative path.
 COPY server/ /app/server/
-COPY lambda/api/core.mjs /app/lambda/api/core.mjs
+COPY api/core.mjs /app/api/core.mjs
 COPY --from=frontend /build/dist /app/public
 
 # Data (sqlite db + PWS files) lives on a mounted volume in k8s.
