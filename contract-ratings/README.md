@@ -51,8 +51,10 @@ server.mjs`) for a fully local loop.
 
 [`scripts/`](scripts/) holds JSON seed documents (e.g.
 `seed-data-kuwait.json`, sample contracts for Camp Arifjan / Camp
-Buehring) and `import-local.mjs`, which imports a document into a
-**running** instance through its HTTP API:
+Buehring). The easiest way to load one is the **Import** button on the
+app's Contracts page — pick the JSON file and it creates the contracts,
+contractors, and ratings. The same import is also scriptable with
+`import-local.mjs` against a **running** instance:
 
 ```bash
 cd scripts

@@ -71,6 +71,14 @@ export type Contract = {
   myRating?: { stars: number; comment: string | null } | null;
 };
 
+// Result of a bulk seed-document import (POST /contracts/import).
+export type ImportResult = {
+  created: { id: string; contractNumber: string }[];
+  skipped: string[];
+  errors: string[];
+  contractorCount: number;
+};
+
 class ApiError extends Error {
   constructor(
     public status: number,
@@ -118,6 +126,11 @@ export const api = {
     }),
 
   listContracts: () => request<{ items: Contract[] }>("/contracts"),
+  // Bulk import of a JSON seed document — an array of contracts or
+  // { contracts: [...] } (same shape as scripts/seed-data-kuwait.json).
+  // Existing contract numbers are skipped server-side.
+  importContracts: (doc: unknown) =>
+    request<ImportResult>("/contracts/import", { method: "POST", body: JSON.stringify(doc) }),
   getContract: (id: string) => request<Contract>(`/contracts/${id}`),
   createContract: (body: Partial<Contract>) =>
     request<Contract>("/contracts", { method: "POST", body: JSON.stringify(body) }),

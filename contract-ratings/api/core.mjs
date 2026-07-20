@@ -312,6 +312,73 @@ export function createRouter({ store, files, getUser }) {
     return json(200, { ...next, pwsDownloadUrl: null });
   }
 
+  // Bulk import of a seed document: either an array of contracts or
+  // { contracts: [...] } (the shape of scripts/seed-data-kuwait.json).
+  // Each entry goes through the same createContract/createContractor
+  // paths as the single-item routes, so all sanitization applies.
+  // Contracts whose contractNumber already exists are skipped, making
+  // re-imports idempotent. Any `ratings` arrays are collapsed to one
+  // rating (the rounded average) recorded as the importing user, since
+  // ratings are keyed per user per target.
+  async function importContracts(body) {
+    const list = Array.isArray(body) ? body : body && typeof body === "object" ? body.contracts : null;
+    if (!Array.isArray(list)) {
+      return badRequest('expected an array of contracts or { "contracts": [...] }');
+    }
+    if (list.length > 500) return badRequest("too many contracts in one import (max 500)");
+
+    const avgStars = (ratings) => {
+      const nums = Array.isArray(ratings) ? ratings.filter((r) => typeof r === "number") : [];
+      if (nums.length === 0) return null;
+      const avg = nums.reduce((s, r) => s + r, 0) / nums.length;
+      return Math.min(5, Math.max(1, Math.round(avg)));
+    };
+
+    const existing = new Set((await store.scanContracts()).map((c) => c.contractNumber));
+    const created = [];
+    const skipped = [];
+    const errors = [];
+    let contractorCount = 0;
+
+    for (const raw of list) {
+      const entry = raw && typeof raw === "object" ? raw : {};
+      const label = typeof entry.contractNumber === "string" ? entry.contractNumber : "(no contractNumber)";
+      // Strip document-only fields; ids are always re-generated on create.
+      const { id: _id, ratings, contractors, ...fields } = entry;
+
+      if (existing.has(fields.contractNumber)) {
+        skipped.push(label);
+        continue;
+      }
+
+      const res = await createContract(fields);
+      if (res.statusCode !== 201) {
+        errors.push(`${label}: ${JSON.parse(res.body).error || "create failed"}`);
+        continue;
+      }
+      const contract = JSON.parse(res.body);
+      existing.add(contract.contractNumber);
+      created.push({ id: contract.id, contractNumber: contract.contractNumber });
+
+      const stars = avgStars(ratings);
+      if (stars) await rate("CONTRACT", contract.id, { stars });
+
+      for (const co of Array.isArray(contractors) ? contractors : []) {
+        const { ratings: coRatings, ...coFields } = co && typeof co === "object" ? co : {};
+        const coRes = await createContractor(coFields, contract.id);
+        if (coRes.statusCode !== 201) {
+          errors.push(`${label} / contractor: ${JSON.parse(coRes.body).error || "create failed"}`);
+          continue;
+        }
+        contractorCount++;
+        const coStars = avgStars(coRatings);
+        if (coStars) await rate("CONTRACTOR", JSON.parse(coRes.body).id, { stars: coStars });
+      }
+    }
+
+    return json(200, { created, skipped, errors, contractorCount });
+  }
+
   return async function route({ routeKey, id, body }) {
     switch (routeKey) {
       case "GET /api/contractors/{id}":
@@ -327,6 +394,8 @@ export function createRouter({ store, files, getUser }) {
         return listContracts();
       case "POST /api/contracts":
         return createContract(body);
+      case "POST /api/contracts/import":
+        return importContracts(body);
       case "GET /api/contracts/{id}":
         return getContract(id);
       case "PUT /api/contracts/{id}":

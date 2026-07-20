@@ -40,6 +40,8 @@ const sso = SSO_SECRET ? createAuth({ password: "", secret: SSO_SECRET }) : null
 const API_ROUTES = [
   ["GET", /^\/api\/contracts$/, "GET /api/contracts"],
   ["POST", /^\/api\/contracts$/, "POST /api/contracts"],
+  // Must precede the {id} patterns so "import" isn't captured as an id.
+  ["POST", /^\/api\/contracts\/import$/, "POST /api/contracts/import"],
   ["GET", /^\/api\/contracts\/([^/]+)$/, "GET /api/contracts/{id}"],
   ["PUT", /^\/api\/contracts\/([^/]+)$/, "PUT /api/contracts/{id}"],
   ["DELETE", /^\/api\/contracts\/([^/]+)$/, "DELETE /api/contracts/{id}"],

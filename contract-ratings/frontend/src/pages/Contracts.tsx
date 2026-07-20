@@ -332,6 +332,8 @@ export function Contracts() {
   const [items, setItems] = useState<Contract[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState<{ text: string; failed: boolean } | null>(null);
 
   const [sortKey, setSortKey] = useState<SortKey>("contractStart");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -355,6 +357,33 @@ export function Contracts() {
   }
 
   useEffect(refresh, []);
+
+  // Import a JSON seed document (array of contracts or { contracts: [...] },
+  // like scripts/seed-data-kuwait.json). The server skips contract numbers
+  // that already exist, so re-importing the same file is harmless.
+  async function onImportFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow picking the same file again
+    if (!file) return;
+    setImporting(true);
+    setImportMsg(null);
+    try {
+      const doc: unknown = JSON.parse(await file.text());
+      const r = await api.importContracts(doc);
+      const parts = [`${r.created.length} contract(s) imported`];
+      if (r.contractorCount) parts.push(`${r.contractorCount} contractor(s)`);
+      if (r.skipped.length) parts.push(`${r.skipped.length} skipped (already exist)`);
+      if (r.errors.length) parts.push(`${r.errors.length} failed: ${r.errors.join("; ")}`);
+      setImportMsg({ text: parts.join(" · "), failed: r.created.length === 0 && r.errors.length > 0 });
+      refresh();
+    } catch (err) {
+      const reason =
+        err instanceof SyntaxError ? "file is not valid JSON" : err instanceof Error ? err.message : "unknown error";
+      setImportMsg({ text: `Import failed: ${reason}`, failed: true });
+    } finally {
+      setImporting(false);
+    }
+  }
 
   function compare(a: Contract, b: Contract) {
     if (sortKey === "avgRating") {
@@ -388,10 +417,28 @@ export function Contracts() {
           <h1>Contracts</h1>
           <p className="subtitle">Contracts on file and their aggregate ratings.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-          + New Contract
-        </button>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <label className="btn btn-outline" style={{ cursor: importing ? "wait" : "pointer" }}>
+            {importing ? "Importing…" : "Import"}
+            <input
+              type="file"
+              accept=".json,application/json"
+              style={{ display: "none" }}
+              onChange={onImportFile}
+              disabled={importing}
+            />
+          </label>
+          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+            + New Contract
+          </button>
+        </div>
       </div>
+
+      {importMsg && (
+        <p className={importMsg.failed ? "error-banner" : "meta"} style={{ marginTop: "0.5rem" }}>
+          {importMsg.text}
+        </p>
+      )}
 
       {items && (
         <div className="stat-row">
@@ -470,7 +517,7 @@ export function Contracts() {
           </table>
         </div>
       ) : (
-        items && <p className="empty-state">No contracts yet. Use “+ New Contract” to add one.</p>
+        items && <p className="empty-state">No contracts yet. Use “+ New Contract” to add one, or “Import” to load a JSON seed document.</p>
       )}
 
       {showModal && <NewContractModal onClose={() => setShowModal(false)} onCreated={refresh} />}
