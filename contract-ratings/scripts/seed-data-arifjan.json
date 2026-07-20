@@ -1,0 +1,126 @@
+{
+  "about": [
+    "Sample seed document: Camp Arifjan, Kuwait — security (Triple Canopy), base operations (V2X),",
+    "and vehicle/equipment maintenance (split between Amentum's APS-5 mission under the 401st AFSB",
+    "and V2X's LOGCAP V base-fleet support). Built from public sources (defense.gov announcements,",
+    "GAO protest decisions, USAspending/HigherGov records, contractor press releases) as of July 2026.",
+    "Values are announced amounts or ceilings as noted and some dates are approximate — verify on",
+    "USAspending.gov / SAM.gov. All people, phones, emails, ratings, and milestones are FICTIONAL",
+    "placeholders. CAGE/UEI left blank — fill from SAM.gov entity registrations.",
+    "NOTE: the V2X and Amentum entries share contract numbers with seed-data-kuwait.json, so the",
+    "import SKIPS them if those are already loaded. To take the refreshed versions, delete the old",
+    "contracts in the UI first, then import this file."
+  ],
+  "contracts": [
+    {
+      "id": "seed-akw1",
+      "contractNumber": "W52P1J-20-F-0496",
+      "title": "Security Support Services — Camp Arifjan & Camp Buehring (Triple Canopy)",
+      "pwsLink": "",
+      "contractStart": "2020-07-22",
+      "contractEnd": "2027-07-21",
+      "milestone30": "Monthly guard-post staffing and training-certification report to the KO.",
+      "milestone60": "Access-control and force-protection equipment surveillance check.",
+      "milestone90": "Quarterly performance review with ASG-Kuwait Directorate of Emergency Services.",
+      "milestone120": "Option-year exercise decision point; verify DBA insurance and manning ceilings.",
+      "notes": "Task order under the CENTCOM Security Support Services (SSS) IDIQ W52P1J-19-D-0005, awarded 22 Jul 2020 by ACC-RI. Announced at $198M with a potential seven-year period; public records show a ceiling up to ~$398.5M with options. Continues Triple Canopy's security presence in Kuwait dating to ~2011. End date shown assumes options exercised — verify current PoP and any follow-on on USAspending.gov/SAM.gov.",
+      "agency": "ACC-RI (for USARCENT / ASG-Kuwait)",
+      "contractValue": 198000000,
+      "description": "Security operations support for DoD personnel and assets at Camp Arifjan and Camp Buehring: police administration, law enforcement support, access control, static and roving guard forces, security force supervision, and support to force-protection technology.",
+      "leads": [
+        { "name": "MAJ Rowan Ellis (placeholder)", "phone": "(555) 030-1000", "email": "sss.kw.lead@example.mil" }
+      ],
+      "pocs": [
+        { "name": "SFC Devon Marsh (placeholder)", "phone": "(555) 030-1100", "email": "sss.kw.cor@example.mil", "inDate": "2024-08-01", "outDate": "" }
+      ],
+      "alternatePocs": [
+        { "name": "Mr. Hollis Grant (placeholder)", "phone": "(555) 030-1200", "email": "sss.kw.acor@example.mil" }
+      ],
+      "ratings": [4, 4],
+      "contractors": [
+        {
+          "company": "Triple Canopy, Inc. (Constellis)",
+          "cageCode": "",
+          "ueiSam": "",
+          "notes": "Prime; Constellis subsidiary. ~9 years incumbent on Kuwait security prior to this task order. Sample rating data.",
+          "ratings": [4, 4, 3]
+        }
+      ]
+    },
+    {
+      "id": "seed-akw2",
+      "contractNumber": "W52P1J-19-F-0400",
+      "title": "LOGCAP V — Kuwait Task Order (V2X): Base Ops, Security & Base Fleet Maintenance",
+      "pwsLink": "https://govtribe.com/file/government-file/7-logcap-v-pws-v5-rev-4-dot-pdf",
+      "contractStart": "2019-04-12",
+      "contractEnd": "2030-06-30",
+      "milestone30": "Monthly award-fee board inputs; validate motor-pool service-order backlog at Arifjan.",
+      "milestone60": "QASP surveillance summary due to KO; NTV fleet readiness metrics review.",
+      "milestone90": "Quarterly performance evaluation board with V2X program management.",
+      "milestone120": "Extension/option planning with ACC-RI LOGCAP contracting office.",
+      "notes": "Task order under LOGCAP V IDIQ W52P1J-19-D-0045; ~$2.2B obligated to date. Army announced 17 Apr 2025 that V2X's Kuwait, Iraq, and INDOPACOM task orders are extended through June 2030. At Camp Arifjan this covers base life support, facilities O&M, transportation, and maintenance of the base operations / non-tactical vehicle fleet (tactical & prepositioned equipment maintenance sits with the APS-5 contract — see W52P1J-12-G-0028).",
+      "agency": "ACC-RI / ASC (LOGCAP)",
+      "contractValue": 2203610702,
+      "description": "Logistics Civil Augmentation Program V support services in Kuwait: base operations, security support, transportation, theater logistics, and base-fleet vehicle maintenance at Camp Arifjan, Camp Buehring, Udairi Range, Camp Patriot, KCIA, and Port of Shuaiba.",
+      "leads": [
+        { "name": "MAJ Jordan Pierce (placeholder)", "phone": "(555) 020-1000", "email": "logcap.kw.lead@example.mil" }
+      ],
+      "pocs": [
+        { "name": "SFC Riley Danvers (placeholder)", "phone": "(555) 020-1100", "email": "logcap.kw.cor@example.mil", "inDate": "2024-10-01", "outDate": "" }
+      ],
+      "alternatePocs": [
+        { "name": "Mr. Casey Holt (placeholder)", "phone": "(555) 020-1200", "email": "logcap.kw.acor@example.mil" }
+      ],
+      "ratings": [4, 4, 5],
+      "contractors": [
+        {
+          "company": "Vectrus Systems LLC (V2X, Inc.)",
+          "cageCode": "",
+          "ueiSam": "",
+          "notes": "Prime. Incumbent lineage from K-BOSSS; merged into V2X in 2022. Sample rating data.",
+          "ratings": [4, 4, 5, 4]
+        }
+      ]
+    },
+    {
+      "id": "seed-akw3",
+      "contractNumber": "W52P1J-12-G-0028 (Order 0003)",
+      "title": "APS-5 Kuwait — Equipment & Vehicle Maintenance, Camp Arifjan (Amentum / AFSBn-Kuwait)",
+      "pwsLink": "",
+      "contractStart": "2016-09-27",
+      "contractEnd": "2025-11-20",
+      "milestone30": "Equipment readiness / inventory accuracy reporting for APS-5 warehouse sets.",
+      "milestone60": "COSIS surveillance; spot-check maintenance quality on tracked and wheeled fleets.",
+      "milestone90": "Recompete transition planning sync with AFSBn-Kuwait and ACC-RI.",
+      "milestone120": "Closeout prep: GFP reconciliation, CPARS narrative drafting.",
+      "notes": "The tactical vehicle/equipment maintenance mission at Camp Arifjan (Bradleys, HMMWVs, APCs, and other APS-5 prepositioned stock) — performed by Amentum under this EAGLE BOA order, managed by AFSBn-Kuwait / 401st AFSB. Recompete status: the ~$128.2M APS-5 Kuwait LOGCAP V task order went to Amentum-Parsons JV in Jul 2024, but GAO SUSTAINED V2X's protest (B-422697, Oct 2024) and directed the Army to re-evaluate and make a new award decision; Amentum-Parsons' reconsideration request was denied. Verify the current performer before relying on this entry.",
+      "agency": "ACC-RI / ASC (401st AFSB / AFSBn-Kuwait)",
+      "contractValue": 1500000000,
+      "description": "Program management, warehousing, inventory control, and field-level maintenance of Army Prepositioned Stocks-5 equipment — the tactical vehicle and equipment maintenance workload at Camp Arifjan and associated Kuwait sites.",
+      "leads": [
+        { "name": "CW3 Avery Sutton (placeholder)", "phone": "(555) 020-2000", "email": "aps5.kw.lead@example.mil" }
+      ],
+      "pocs": [
+        { "name": "SSG Morgan Lee (placeholder)", "phone": "(555) 020-2100", "email": "aps5.kw.cor@example.mil", "inDate": "2024-06-15", "outDate": "" }
+      ],
+      "alternatePocs": [],
+      "ratings": [4, 3, 4],
+      "contractors": [
+        {
+          "company": "Amentum Services, Inc.",
+          "cageCode": "",
+          "ueiSam": "",
+          "notes": "Prime (formerly AECOM Management Services); incumbent pending APS-5 recompete re-award. Sample rating data.",
+          "ratings": [4, 4, 3]
+        },
+        {
+          "company": "Amentum-Parsons Logistics Services LLC",
+          "cageCode": "",
+          "ueiSam": "",
+          "notes": "JV awardee of the 2024 APS-5 Kuwait recompete task order (~$128.2M) — award set aside after GAO sustained V2X's protest; listed here for tracking the transition. Sample rating data.",
+          "ratings": [3]
+        }
+      ]
+    }
+  ]
+}
