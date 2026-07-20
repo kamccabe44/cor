@@ -1,0 +1,212 @@
+{
+  "about": [
+    "Sample seed document: current/recent government contracts supporting Camp Arifjan and Camp Buehring, Kuwait.",
+    "Contract numbers, primes, values, and dates come from public sources (USAspending.gov, defense.gov contract",
+    "announcements, SAM.gov solicitations, army.mil, and contractor press releases) as of July 2026. Dollar values",
+    "are obligated/announced amounts or ceilings as noted, and some dates are approximate -- verify against",
+    "USAspending.gov / SAM.gov before relying on them. All people, phone numbers, emails, ratings, and milestone",
+    "entries are FICTIONAL placeholders for demo purposes. CAGE/UEI fields are left blank; fill them from the",
+    "contractor's SAM.gov entity registration if needed.",
+    "Import with: node seed.mjs --file seed-data-kuwait.json"
+  ],
+  "contracts": [
+    {
+      "id": "seed-kw1",
+      "contractNumber": "W52P1J-19-F-0400",
+      "title": "LOGCAP V — Kuwait Task Order (Base Life Support & Security)",
+      "pwsLink": "https://govtribe.com/file/government-file/7-logcap-v-pws-v5-rev-4-dot-pdf",
+      "contractStart": "2019-04-12",
+      "contractEnd": "2030-06-30",
+      "milestone30": "Monthly award-fee board inputs due; validate service order backlog at Arifjan and Buehring.",
+      "milestone60": "QASP surveillance summary due to KO; review staffing levels against PWS matrix.",
+      "milestone90": "Quarterly performance evaluation board (PEB) with V2X program management.",
+      "milestone120": "Option/extension planning review with ACC-RI LOGCAP contracting office.",
+      "notes": "Task order under LOGCAP V IDIQ W52P1J-19-D-0045. Successor to K-BOSSS. Covers base operations, security, and logistics at Camp Arifjan, Camp Buehring, Udairi Range Complex, Camp Patriot (KNB), Kuwait City International Airport, and Port of Shuaiba. ~$2.2B obligated to date; task orders extended through June 2030.",
+      "agency": "ACC-RI / ASC (LOGCAP)",
+      "contractValue": 2203610702,
+      "description": "Logistics Civil Augmentation Program V support services in Kuwait: base life support, facilities O&M, security support, transportation, and theater logistics for U.S. Army installations in Kuwait.",
+      "leads": [
+        { "name": "MAJ Jordan Pierce (placeholder)", "phone": "(555) 020-1000", "email": "logcap.kw.lead@example.mil" }
+      ],
+      "pocs": [
+        { "name": "SFC Riley Danvers (placeholder)", "phone": "(555) 020-1100", "email": "logcap.kw.cor@example.mil", "inDate": "2024-10-01", "outDate": "" }
+      ],
+      "alternatePocs": [
+        { "name": "Mr. Casey Holt (placeholder)", "phone": "(555) 020-1200", "email": "logcap.kw.acor@example.mil" }
+      ],
+      "ratings": [4, 4, 5],
+      "contractors": [
+        {
+          "company": "Vectrus Systems LLC (V2X, Inc.)",
+          "cageCode": "",
+          "ueiSam": "",
+          "notes": "Prime. Incumbent from K-BOSSS; merged into V2X in 2022. Sample rating data.",
+          "ratings": [4, 4, 5, 4]
+        }
+      ]
+    },
+    {
+      "id": "seed-kw2",
+      "contractNumber": "W52P1J-12-G-0028 (Order 0003)",
+      "title": "Army Prepositioned Stocks-5 (APS-5) Kuwait Logistics Support — Camp Arifjan",
+      "pwsLink": "",
+      "contractStart": "2016-09-27",
+      "contractEnd": "2025-11-20",
+      "milestone30": "Validate equipment readiness / inventory accuracy reports for APS-5 warehouses.",
+      "milestone60": "Care-of-supplies-in-storage (COSIS) surveillance visit.",
+      "milestone90": "Transition planning sync for APS-5 recompete task order.",
+      "milestone120": "Closeout prep: GFP inventory reconciliation and past-performance (CPARS) drafting.",
+      "notes": "EAGLE BOA order; ceiling up to ~$1.5B with multiple mods (e.g., $142.0M mod through Nov 2025). Recompete APS-5 Kuwait task order awarded to Amentum-Parsons JV (~$128.2M) in 2024 and protested by V2X — confirm current performer before use.",
+      "agency": "ACC-RI / Army Sustainment Command",
+      "contractValue": 1500000000,
+      "description": "Program management, warehousing, inventory control, field-level maintenance, and issue/receipt of Army Prepositioned Stock equipment sets at Camp Arifjan and associated sites in Kuwait.",
+      "leads": [
+        { "name": "CW3 Avery Sutton (placeholder)", "phone": "(555) 020-2000", "email": "aps5.kw.lead@example.mil" }
+      ],
+      "pocs": [
+        { "name": "SSG Morgan Lee (placeholder)", "phone": "(555) 020-2100", "email": "aps5.kw.cor@example.mil", "inDate": "2024-06-15", "outDate": "" }
+      ],
+      "alternatePocs": [],
+      "ratings": [4, 3, 4],
+      "contractors": [
+        {
+          "company": "Amentum Services, Inc.",
+          "cageCode": "",
+          "ueiSam": "",
+          "notes": "Prime (formerly AECOM Management Services). Sample rating data.",
+          "ratings": [4, 4, 3]
+        }
+      ]
+    },
+    {
+      "id": "seed-kw3",
+      "contractNumber": "W52P1J-17-R-0049 (DFAC 3.0)",
+      "title": "Kuwait Dining Facilities (DFAC 3.0) — Camp Arifjan & Camp Buehring",
+      "pwsLink": "",
+      "contractStart": "2018-02-01",
+      "contractEnd": "2023-01-31",
+      "milestone30": "Monthly sanitation/food-safety surveillance checklists for all nine DFACs.",
+      "milestone60": "Headcount and meal-rate reconciliation with contracting office.",
+      "milestone90": "Quarterly performance review; validate incentive-fee metrics.",
+      "milestone120": "Follow-on requirement planning (see 408th CSB RFQ W912D1-23-Q-0003 for Arifjan/Buehring DFAC).",
+      "notes": "Number shown is the solicitation; award announced Feb 2018 to Vectrus (~$108M, hybrid CPFF/performance-incentive, 5-year potential PoP). Continuous operation of nine DFACs at Camp Arifjan, Camp Buehring, Kuwait Naval Base, Ali Al Salem AB, and Mubarak AB. Dates approximate; DFAC operations have since folded into follow-on vehicles.",
+      "agency": "ACC-RI",
+      "contractValue": 108000000,
+      "description": "Full food service operations — personnel, equipment, supplies, transportation, and supervision — for Army dining facilities in Kuwait.",
+      "leads": [
+        { "name": "CPT Dana Whitfield (placeholder)", "phone": "(555) 020-3000", "email": "dfac.kw.lead@example.mil" }
+      ],
+      "pocs": [
+        { "name": "SFC Jamie Cortez (placeholder)", "phone": "(555) 020-3100", "email": "dfac.kw.cor@example.mil", "inDate": "2021-01-10", "outDate": "2023-01-31" }
+      ],
+      "alternatePocs": [
+        { "name": "Ms. Robin Vance (placeholder)", "phone": "(555) 020-3200", "email": "dfac.kw.acor@example.mil" }
+      ],
+      "ratings": [4, 4],
+      "contractors": [
+        {
+          "company": "Vectrus Systems Corporation",
+          "cageCode": "",
+          "ueiSam": "",
+          "notes": "Prime for DFAC 3.0. Sample rating data.",
+          "ratings": [4, 3, 4]
+        }
+      ]
+    },
+    {
+      "id": "seed-kw4",
+      "contractNumber": "SPE300-18-D-4032",
+      "title": "Subsistence Prime Vendor — Kuwait (Food Supply & Distribution)",
+      "pwsLink": "https://www.dla.mil/Portals/104/Documents/TroopSupport/Subsistence/Food%20Services/Regions/Middle%20East/PV/18D4032.pdf",
+      "contractStart": "2018-07-01",
+      "contractEnd": "2024-12-31",
+      "milestone30": "Fill-rate and order-ship-time metrics review with DLA account manager.",
+      "milestone60": "Cold-chain / warehouse sanitation audit.",
+      "milestone90": "Catalog and pricing (STORES) review.",
+      "milestone120": "Recompete tracking: SPE300-23-R-0007 (Subsistence Prime Vendor Iraq, Jordan, Kuwait, Syria).",
+      "notes": "DLA Troop Support prime vendor supplying DFACs at Camp Arifjan, Camp Buehring, and other Kuwait sites. ~$2.16B value if all options exercised (18-month base + options). Start/end dates approximate — verify current ordering period on USAspending.gov.",
+      "agency": "DLA Troop Support (Subsistence)",
+      "contractValue": 2160000000,
+      "description": "Full-line food distribution: purchasing, storage, stock rotation, and delivery of subsistence (including UGRs, MREs, kosher/halal meals) to military customers in Kuwait.",
+      "leads": [
+        { "name": "Mr. Quinn Abara (placeholder)", "phone": "(555) 020-4000", "email": "spv.kw.lead@example.mil" }
+      ],
+      "pocs": [
+        { "name": "SSG Parker Nguyen (placeholder)", "phone": "(555) 020-4100", "email": "spv.kw.cor@example.mil", "inDate": "2022-03-01", "outDate": "" }
+      ],
+      "alternatePocs": [],
+      "ratings": [3, 4, 3],
+      "contractors": [
+        {
+          "company": "Anham FZCO",
+          "cageCode": "",
+          "ueiSam": "",
+          "notes": "Prime vendor since 2008 era of the SPV program in Kuwait/Iraq/Jordan. Sample rating data.",
+          "ratings": [3, 4]
+        }
+      ]
+    },
+    {
+      "id": "seed-kw5",
+      "contractNumber": "W912QR-24-C-XXXX (verify)",
+      "title": "Camp Arifjan Construction — USACE (AICI-Archirodon JV)",
+      "pwsLink": "",
+      "contractStart": "2024-09-18",
+      "contractEnd": "2027-03-21",
+      "milestone30": "Submittal register and construction schedule (NAS) review.",
+      "milestone60": "QA/QC site surveillance; safety (EM 385-1-1) compliance check.",
+      "milestone90": "Progress payment / earned-value review with USACE resident office.",
+      "milestone120": "Pre-final inspection planning and punch-list development.",
+      "notes": "Firm-fixed-price construction award of $9,688,000 announced Sept 18, 2024 (10 bids received), administered by USACE Louisville District; completion due March 21, 2027. Award number not published in the public announcement — replace 'XXXX' after verifying on USAspending.gov.",
+      "agency": "USACE (Louisville District / Transatlantic Middle East District)",
+      "contractValue": 9688000,
+      "description": "Military construction services at Camp Arifjan, Kuwait.",
+      "leads": [
+        { "name": "Mr. Emerson Kade (placeholder)", "phone": "(555) 020-5000", "email": "usace.arifjan.lead@example.mil" }
+      ],
+      "pocs": [
+        { "name": "SFC Taylor Brooks (placeholder)", "phone": "(555) 020-5100", "email": "usace.arifjan.cor@example.mil", "inDate": "2024-10-01", "outDate": "" }
+      ],
+      "alternatePocs": [],
+      "ratings": [4],
+      "contractors": [
+        {
+          "company": "AICI-Archirodon JV LLC",
+          "cageCode": "",
+          "ueiSam": "",
+          "notes": "Prime (McLean, VA JV). Also holds other USACE Middle East District work. Sample rating data.",
+          "ratings": [4]
+        }
+      ]
+    },
+    {
+      "id": "seed-kw6",
+      "contractNumber": "W52P1J-10-C-0062",
+      "title": "K-BOSSS — Kuwait Base Operations & Security Support Services (legacy)",
+      "pwsLink": "",
+      "contractStart": "2010-11-01",
+      "contractEnd": "2021-08-31",
+      "milestone30": "",
+      "milestone60": "",
+      "milestone90": "",
+      "milestone120": "",
+      "notes": "CLOSED / historical reference. Cost-plus award-fee base operations and security contract for Camp Arifjan, Camp Buehring, Udairi Range, and Camp Patriot. Initial value ~$1.3B, grew substantially over extensions. Work transitioned into LOGCAP V Kuwait Task Order W52P1J-19-F-0400. End date approximate.",
+      "agency": "ACC-RI (Army Contracting Command – Rock Island)",
+      "contractValue": 1300000000,
+      "description": "Legacy base operations and security support services contract for U.S. Army installations in Kuwait; predecessor to the LOGCAP V Kuwait task order.",
+      "leads": [],
+      "pocs": [],
+      "alternatePocs": [],
+      "ratings": [4, 4],
+      "contractors": [
+        {
+          "company": "Vectrus Systems Corporation",
+          "cageCode": "",
+          "ueiSam": "",
+          "notes": "Prime for full period of performance. Sample rating data.",
+          "ratings": [4, 5]
+        }
+      ]
+    }
+  ]
+}
