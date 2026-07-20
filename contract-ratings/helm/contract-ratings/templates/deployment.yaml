@@ -36,7 +36,7 @@ spec:
           {{- if not .Values.image.repository }}
           {{- fail "image.repository is required (registry ref for the contract-ratings image)" }}
           {{- end }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ required "image.repository is required" .Values.image.repository }}:{{ required "image.tag is required — use the git-SHA tag printed by publish-ecr.sh" .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- with .Values.securityContext }}
           securityContext:

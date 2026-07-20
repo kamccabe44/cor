@@ -15,10 +15,13 @@ image:
   # Registry reference for the built contract-ratings image, e.g.
   # <account>.dkr.ecr.us-east-1.amazonaws.com/contract-ratings. Required.
   repository: ""
-  tag: "latest"
-  # The k3s node pulls from the registry, so Always/IfNotPresent both work;
-  # IfNotPresent avoids re-pulling an already-cached tag.
-  pullPolicy: "Always"
+  # Immutable git-SHA tag as printed by scripts/publish-ecr.sh. Required —
+  # there is no "latest"; the tag pins the exact build a tenant runs, and
+  # upgrades change it explicitly (see os_alerts scripts/cor-update-image.sh).
+  tag: ""
+  # Tags are immutable, so a cached tag never goes stale — IfNotPresent
+  # avoids a registry round-trip (and re-auth) on every pod restart.
+  pullPolicy: "IfNotPresent"
 # Only needed if the registry requires a pull secret. With ECR + an EC2
 # instance role (the k3s node's IAM), leave empty — the kubelet credential
 # provider authenticates the node.
