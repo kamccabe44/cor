@@ -1,7 +1,7 @@
 // node:sqlite implementation of the core's data store. One file on disk
 // holds all three logical "tables" as JSON blobs keyed the same way
 // DynamoDB keys them, so the shared core logic in
-// ../lambda/api/core.mjs runs unchanged.
+// ../api/core.mjs runs unchanged.
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";

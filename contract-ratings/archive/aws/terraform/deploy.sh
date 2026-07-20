@@ -7,7 +7,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
-FRONTEND_DIR="${SCRIPT_DIR}/../frontend"
+FRONTEND_DIR="${SCRIPT_DIR}/../../../frontend"
 AUTO_TFVARS_FILE="${SCRIPT_DIR}/local.auto.tfvars"
 
 ACTION="apply"

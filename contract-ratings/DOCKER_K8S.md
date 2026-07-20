@@ -1,10 +1,11 @@
 # Contract Ratings — container build (Docker Desktop Kubernetes)
 
-The same app that runs serverless on AWS (Cognito + API Gateway + Lambda +
-DynamoDB + S3) also runs as a **single self-contained container** with no
-AWS and no network dependencies — for local use, demos, or a disconnected
-environment. It's the same API route logic (`lambda/api/core.mjs`), wired
-to local backends instead of AWS.
+The app runs as a **single self-contained container** with no AWS and no
+network dependencies — for local use, demos, or a disconnected
+environment. This is the primary deployment; the AWS serverless variant
+(Cognito + API Gateway + Lambda + DynamoDB + S3) is parked in
+`archive/aws/`. Both use the same API route logic (`api/core.mjs`), wired
+to different backends.
 
 | Concern   | AWS build                     | Container build              |
 | --------- | ----------------------------- | ---------------------------- |
@@ -105,11 +106,15 @@ with the server and the shared core into a small `node:22-slim` image.
 
 ## Using it as an `os_alerts` add-on
 
-The `os_alerts` app offers this app as an optional, per-customer **COR**
-add-on, in two modes:
+The `os_alerts` app offers this app as a **COR** add-on, in three modes:
 
-- **Link-only** — point `CONTRACT_RATINGS_URL` at a running instance (like the
-  one above) and os_alerts shows a link. Simplest; works anywhere.
+- **In-cluster pod** (primary) — the os_alerts `k8s/` manifests deploy this
+  container as an additional pod (`cor-*.yaml`) in the ALERTS namespace and
+  point the ALERTS nav link at it via `CONTRACT_RATINGS_URL`. Build the image
+  as above (`contract-ratings:local`) and `kubectl apply -k k8s/` from the
+  os_alerts repo.
+- **Link-only** — point `CONTRACT_RATINGS_URL` at any running instance (like
+  the one above) and os_alerts shows a link. Simplest; works anywhere.
 - **Provisioning** — os_alerts deploys a dedicated instance *per tenant* on
   demand, at `cor.<subdomain>.<base_domain>`. That path uses the Helm chart in
   [`helm/contract-ratings/`](helm/contract-ratings/) and the image/chart pushed

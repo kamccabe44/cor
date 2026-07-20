@@ -29,7 +29,7 @@ aws ecr describe-repositories --repository-names "$REPO" --region "$REGION" >/de
   || aws ecr create-repository --repository-name "$REPO" --region "$REGION" >/dev/null
 
 echo "== Build + push image ${REGISTRY}/${REPO}:${TAG} =="
-# Build from the repo root so the Dockerfile's COPY paths (server/, lambda/api,
+# Build from the repo root so the Dockerfile's COPY paths (server/, api/,
 # frontend/) resolve — same as `docker build ... contract-ratings`.
 docker build --platform linux/amd64 -t "${REGISTRY}/${REPO}:${TAG}" "$ROOT"
 docker push "${REGISTRY}/${REPO}:${TAG}"

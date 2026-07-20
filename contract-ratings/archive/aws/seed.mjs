@@ -2,11 +2,16 @@
 // contracts, contract-level contacts (leads / POCs / alternate POCs),
 // nested contractors, and ratings -- for testing/demo only.
 //
+// ARCHIVED with the AWS serverless deployment (see ./README.md): this
+// writes to DynamoDB and only applies if that stack is revived. For the
+// container build, use ../../scripts/import-local.mjs instead.
+//
 // Usage:
-//   cd contract-ratings/scripts
+//   cd contract-ratings/archive/aws
 //   npm install
 //   node seed.mjs                          # writes the built-in demo data
 //   node seed.mjs --file <data.json>       # writes contracts from a JSON seed document
+//                                          #   (e.g. ../../scripts/seed-data-kuwait.json)
 //   node seed.mjs --wipe                   # deletes all seed-* items, writes nothing
 //
 // A JSON seed document is either an array of contracts or an object with a

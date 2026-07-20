@@ -11,7 +11,7 @@ variable "root_domain" {
 }
 
 variable "subdomain" {
-  description = "Subdomain label the app is served on, e.g. cor for cor.1136mpco.com. This stack takes over cor.1136mpco.com from the old EC2/k3s deployment in ../../terraform — see README.md for the migration steps."
+  description = "Subdomain label the app is served on, e.g. cor for cor.1136mpco.com. This stack takes over cor.1136mpco.com from the old EC2/k3s deployment in the repo-root terraform/ directory — see README.md for the migration steps."
   type        = string
   default     = "cor"
 }

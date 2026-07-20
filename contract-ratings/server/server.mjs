@@ -8,7 +8,7 @@ import { createReadStream, createWriteStream } from "node:fs";
 import { mkdir, stat } from "node:fs/promises";
 import { pipeline } from "node:stream/promises";
 import { dirname, extname, join, normalize, resolve, sep } from "node:path";
-import { createRouter } from "../lambda/api/core.mjs";
+import { createRouter } from "../api/core.mjs";
 import { createSqliteStore } from "./store.mjs";
 import { createDiskFiles } from "./files.mjs";
 import { createAuth } from "./auth.mjs";
