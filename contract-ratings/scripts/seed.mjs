@@ -5,8 +5,16 @@
 // Usage:
 //   cd contract-ratings/scripts
 //   npm install
-//   node seed.mjs            # writes seed data
-//   node seed.mjs --wipe     # deletes all seed-* items, writes nothing
+//   node seed.mjs                          # writes the built-in demo data
+//   node seed.mjs --file <data.json>       # writes contracts from a JSON seed document
+//   node seed.mjs --wipe                   # deletes all seed-* items, writes nothing
+//
+// A JSON seed document is either an array of contracts or an object with a
+// `contracts` array, shaped like the CONTRACTS constant below (see
+// seed-data-kuwait.json for an example). Contact entries may omit `id`,
+// `inDate`, and `outDate`; ids are generated and prefixed "seed-", and
+// contract ids are prefixed "seed-" if they aren't already, so --wipe
+// still removes everything a seed run created.
 //
 // Uses your ambient AWS credentials (same ones deploy.sh uses) and writes
 // directly to the tables via the DynamoDB API -- it does NOT go through
@@ -17,6 +25,7 @@
 // --wipe can find and remove exactly what this script added without
 // touching real data.
 
+import { readFileSync } from "node:fs";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   DynamoDBDocumentClient,
@@ -124,6 +133,39 @@ const CONTRACTS = [
   },
 ];
 
+function normalizeContact(ct) {
+  return {
+    inDate: "",
+    outDate: "",
+    ...ct,
+    id: ct.id ?? `${SEED}${crypto.randomUUID()}`,
+  };
+}
+
+function loadContracts() {
+  const i = process.argv.indexOf("--file");
+  if (i === -1) return CONTRACTS;
+  const path = process.argv[i + 1];
+  if (!path || path.startsWith("--")) {
+    console.error("Usage: node seed.mjs --file <data.json>");
+    process.exit(1);
+  }
+  const doc = JSON.parse(readFileSync(path, "utf8"));
+  const list = Array.isArray(doc) ? doc : doc.contracts;
+  if (!Array.isArray(list)) {
+    throw new Error(`${path}: expected an array of contracts or { "contracts": [...] }`);
+  }
+  return list.map((c) => ({
+    ...c,
+    id: String(c.id).startsWith(SEED) ? c.id : `${SEED}${c.id}`,
+    leads: (c.leads ?? []).map(normalizeContact),
+    pocs: (c.pocs ?? []).map(normalizeContact),
+    alternatePocs: (c.alternatePocs ?? []).map(normalizeContact),
+    ratings: c.ratings ?? [],
+    contractors: c.contractors ?? [],
+  }));
+}
+
 function summarize(ratings) {
   const count = ratings.length;
   const avg = count > 0 ? ratings.reduce((s, r) => s + r, 0) / count : 0;
@@ -148,8 +190,9 @@ async function ratingRows(targetKey, ratings) {
 }
 
 async function seed() {
+  const contracts = loadContracts();
   let contractorCount = 0;
-  for (const c of CONTRACTS) {
+  for (const c of contracts) {
     const { ratings, contractors, ...fields } = c;
     const { avg, count } = summarize(ratings);
     await put(CONTRACTS_TABLE, {
@@ -183,7 +226,7 @@ async function seed() {
       contractorCount++;
     }
   }
-  console.log(`Seeded ${CONTRACTS.length} contracts and ${contractorCount} contractors (with ratings).`);
+  console.log(`Seeded ${contracts.length} contracts and ${contractorCount} contractors (with ratings).`);
 }
 
 async function wipe() {
