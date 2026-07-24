@@ -1,0 +1,35 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# ── Cloud / standalone online deployment ─────────────────────────────────────
+# A single COR instance on any Kubernetes cluster with internet access,
+# fronted by an Ingress with a cert-manager TLS certificate. Point the image
+# at your registry ref first (or edit it here):
+#   cd contract-ratings/deploy/k8s/overlays/cloud
+#   kustomize edit set image contract-ratings=<registry>/contract-ratings:<tag>
+# and set the real hostname in ingress.yaml, then:
+#   kubectl apply -k contract-ratings/deploy/k8s/overlays/cloud
+#
+# For per-customer instances provisioned by PEACEMAKER, use the Helm chart at
+# deploy/helm/contract-ratings instead (see the os_alerts repo's COR_ADDON.md).
+namespace: contract-ratings
+
+resources:
+  - ../../base
+  - ingress.yaml
+
+images:
+  - name: contract-ratings
+    # Replace with your registry ref, e.g.:
+    #   newName: ghcr.io/<owner>/contract-ratings
+    #   newTag: latest
+    newTag: local
+
+patches:
+  - target:
+      kind: Deployment
+      name: contract-ratings
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: Always

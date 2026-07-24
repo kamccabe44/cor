@@ -44,10 +44,10 @@ cd server && APP_PASSWORD=changeme STATIC_DIR=../frontend/dist DATA_DIR=./.local
 
 ```bash
 # from the repo root
-docker build -t contract-ratings:local contract-ratings
+docker build -f contract-ratings/docker/Dockerfile -t contract-ratings:local contract-ratings
 ```
 
-The multi-stage `Dockerfile` builds the SPA in local mode and assembles it
+The multi-stage `docker/Dockerfile` builds the SPA in local mode and assembles it
 with the server and the shared core into a small `node:22-slim` image.
 
 ## Deploy to Docker Desktop Kubernetes
@@ -56,23 +56,26 @@ with the server and the shared core into a small `node:22-slim` image.
    The image you built is already in Docker Desktop's image store, and the
    Deployment uses `imagePullPolicy: IfNotPresent`, so nothing is pulled.
 
-2. Set the password, then apply the manifests:
+2. Deploy the docker-desktop overlay (everything now lives in the
+   `contract-ratings` namespace):
 
    ```bash
-   # create the password secret (don't commit a real one)
-   kubectl create secret generic contract-ratings \
-     --from-literal=APP_PASSWORD='your-strong-password'
+   kubectl apply -k contract-ratings/deploy/k8s/overlays/docker-desktop
 
-   # apply the rest (kustomization pulls in pvc + deployment + service;
-   # the committed secret.yaml is a placeholder — the line above wins if
-   # you skip applying it)
-   kubectl apply -f contract-ratings/k8s/pvc.yaml \
-                 -f contract-ratings/k8s/deployment.yaml \
-                 -f contract-ratings/k8s/service.yaml
+   # then replace the placeholder password (or edit
+   # deploy/k8s/base/secret.yaml before applying instead)
+   kubectl -n contract-ratings create secret generic contract-ratings \
+     --from-literal=APP_PASSWORD='your-strong-password' \
+     --dry-run=client -o yaml | kubectl apply -f -
+   kubectl -n contract-ratings rollout restart deploy/contract-ratings
    ```
 
-   Or apply everything (including the placeholder secret) at once with
-   `kubectl apply -k contract-ratings/k8s` — just edit `secret.yaml` first.
+   The kustomize base (`deploy/k8s/base/`) holds the namespace + secret +
+   pvc + deployment + service; the overlay switches the Service to
+   LoadBalancer and keeps the local image. A `cloud` overlay
+   (`deploy/k8s/overlays/cloud/`) instead points at a registry image and
+   adds an Ingress with cert-manager TLS — see the repo root
+   `DEPLOYMENTS.md`.
 
 3. Reach the app. The Service is `type: LoadBalancer`, which Docker Desktop
    maps to `localhost`:
@@ -84,7 +87,7 @@ with the server and the shared core into a small `node:22-slim` image.
    If your cluster has no LoadBalancer, port-forward instead:
 
    ```bash
-   kubectl port-forward deploy/contract-ratings 8080:8080
+   kubectl -n contract-ratings port-forward deploy/contract-ratings 8080:8080
    # then open http://localhost:8080/
    ```
 
@@ -117,7 +120,7 @@ The `os_alerts` app offers this app as a **COR** add-on, in three modes:
   the one above) and os_alerts shows a link. Simplest; works anywhere.
 - **Provisioning** — os_alerts deploys a dedicated instance *per tenant* on
   demand, at `cor.<subdomain>.<base_domain>`. That path uses the Helm chart in
-  [`helm/contract-ratings/`](helm/contract-ratings/) and the image/chart pushed
+  [`deploy/helm/contract-ratings/`](deploy/helm/contract-ratings/) and the image/chart pushed
   to ECR by [`scripts/publish-ecr.sh`](scripts/publish-ecr.sh).
 
 Either way the apps stay fully independent — just a link or a separate

@@ -2,7 +2,8 @@
 # Serves the built SPA and the /api routes from one Node process, backed
 # by node:sqlite + local disk, gated by a shared password. No AWS.
 #
-#   docker build -t contract-ratings:local contract-ratings
+# Build with the app directory as context (COPY paths are relative to it):
+#   docker build -f contract-ratings/docker/Dockerfile -t contract-ratings:local contract-ratings
 
 # --- Stage 1: build the SPA in local mode (no Cognito) ---
 FROM node:22-slim AS frontend

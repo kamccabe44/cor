@@ -32,7 +32,7 @@ other and of `os_alerts` — this chart only shares the container image.
 ## Install (what the provisioner runs)
 
 ```bash
-helm upgrade --install cor-1136 ./contract-ratings/helm/contract-ratings \
+helm upgrade --install cor-1136 ./contract-ratings/deploy/helm/contract-ratings \
   --namespace cor-tenants --create-namespace \
   --set tenant=1136 \
   --set image.repository=<acct>.dkr.ecr.us-east-1.amazonaws.com/contract-ratings \

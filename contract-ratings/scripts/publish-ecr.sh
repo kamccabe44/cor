@@ -22,7 +22,7 @@ REPO="contract-ratings"
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/.." && pwd)"                     # contract-ratings/
-CHART_DIR="$ROOT/helm/contract-ratings"
+CHART_DIR="$ROOT/deploy/helm/contract-ratings"
 
 # Default tag: the git short SHA of HEAD, with "-dirty" appended when the
 # working tree has uncommitted changes (a dirty tag is NOT reproducible —
@@ -43,9 +43,9 @@ aws ecr describe-repositories --repository-names "$REPO" --region "$REGION" >/de
   || aws ecr create-repository --repository-name "$REPO" --region "$REGION" >/dev/null
 
 echo "== Build + push image ${REGISTRY}/${REPO}:${TAG} =="
-# Build from the repo root so the Dockerfile's COPY paths (server/, api/,
-# frontend/) resolve — same as `docker build ... contract-ratings`.
-docker build --platform linux/amd64 -t "${REGISTRY}/${REPO}:${TAG}" "$ROOT"
+# Build with the app dir as context so the Dockerfile's COPY paths (server/,
+# api/, frontend/) resolve; the Dockerfile itself lives in docker/.
+docker build --platform linux/amd64 -f "$ROOT/docker/Dockerfile" -t "${REGISTRY}/${REPO}:${TAG}" "$ROOT"
 docker push "${REGISTRY}/${REPO}:${TAG}"
 
 echo "== Package + push Helm chart =="

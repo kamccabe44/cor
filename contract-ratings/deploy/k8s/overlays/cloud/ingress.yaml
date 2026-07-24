@@ -1,0 +1,29 @@
+# Ingress for the standalone cloud deployment: one host, TLS via a
+# cert-manager ClusterIssuer. Set the real hostname (and adjust the issuer /
+# ingress class to what the cluster runs) before applying. DNS for the host
+# must point at the cluster so the HTTP-01 challenge resolves.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: contract-ratings
+  labels:
+    app: contract-ratings
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - cor.example.com
+      secretName: contract-ratings-tls
+  rules:
+    - host: cor.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: contract-ratings
+                port:
+                  number: 80

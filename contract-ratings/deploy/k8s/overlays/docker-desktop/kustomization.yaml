@@ -1,0 +1,34 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# ── Docker Desktop / local deployment ────────────────────────────────────────
+# Runs on Docker Desktop's built-in Kubernetes (or any local cluster) using
+# the locally built image — nothing is pulled from a registry, so it works
+# offline. Docker Desktop publishes LoadBalancer services on localhost; the
+# app is reachable at http://localhost/ (and from the LAN via the host's
+# firewall).
+#
+# Build + deploy, from the repo root:
+#   docker build -f contract-ratings/docker/Dockerfile -t contract-ratings:local contract-ratings
+#   kubectl apply -k contract-ratings/deploy/k8s/overlays/docker-desktop
+# To carry to an offline machine: docker save / docker load the image.
+namespace: contract-ratings
+
+resources:
+  - ../../base
+
+patches:
+  - target:
+      kind: Service
+      name: contract-ratings
+    patch: |-
+      - op: replace
+        path: /spec/type
+        value: LoadBalancer
+  - target:
+      kind: Deployment
+      name: contract-ratings
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent

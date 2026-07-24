@@ -1,6 +1,6 @@
 // Imports a JSON seed document (see seed-data-kuwait.json) into a RUNNING
 // container-mode Contract Ratings instance through its HTTP API -- the
-// sqlite-backed build deployed by Dockerfile + k8s/. For the AWS/DynamoDB
+// sqlite-backed build deployed by docker/Dockerfile + deploy/k8s/. For the AWS/DynamoDB
 // deployment use seed.mjs instead.
 //
 // Zero dependencies (Node 18+ global fetch). It signs in with the shared

@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Shared base for the standalone Kubernetes deployment targets:
+#   overlays/docker-desktop — local / LAN, locally built image, LoadBalancer
+#   overlays/cloud          — any online cluster, registry image + ingress/TLS
+# (The per-tenant PEACEMAKER add-on uses deploy/helm/contract-ratings instead.)
+namespace: contract-ratings
+
+resources:
+  - namespace.yaml
+  - secret.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml

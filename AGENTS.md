@@ -6,11 +6,13 @@ environment.
 
 **Primary deployment — self-contained container** —
 `contract-ratings/server/` (node:sqlite, local disk, shared password),
-built by `contract-ratings/Dockerfile`. It runs as an add-on pod for the
-**ALERTS** app (`os_alerts` repo): in-cluster next to ALERTS via that
-repo's `k8s/` manifests, or provisioned per tenant by ALERTS using
-`contract-ratings/helm/contract-ratings/` (see `os_alerts` `COR_ADDON.md`).
-`contract-ratings/k8s/` also deploys it standalone on Docker Desktop.
+built by `contract-ratings/docker/Dockerfile`. It runs as an add-on pod
+for the **ALERTS/PEACEMAKER** app (`os_alerts` repo): in-cluster next to
+it via that repo's `deploy/k8s/` overlays, or provisioned per tenant using
+`contract-ratings/deploy/helm/contract-ratings/` (see `os_alerts`
+`COR_ADDON.md`). The kustomize overlays under `contract-ratings/deploy/k8s/`
+(base + `docker-desktop` | `cloud`) also deploy it standalone — the same
+three-target layout as the `os_alerts` repo; see the root `DEPLOYMENTS.md`.
 
 **Archived — AWS serverless** — `contract-ratings/archive/aws/` (Lambda
 handler, terraform for DynamoDB/S3/Cognito/CloudFront, DynamoDB seeder).

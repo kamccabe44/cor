@@ -13,10 +13,13 @@ add-on pod for the **ALERTS** (`os_alerts`) app:
   `k8s/` manifests (`cor-*.yaml`); ALERTS links to it via
   `CONTRACT_RATINGS_URL`.
 - **Per-tenant provisioning** — ALERTS Helm-installs
-  [`helm/contract-ratings/`](helm/contract-ratings/) per customer at
-  `cor.<subdomain>.<base_domain>` (see `os_alerts` `COR_ADDON.md`).
-- **Standalone** — [`k8s/`](k8s/) deploys it by itself on Docker Desktop
-  Kubernetes, or run it directly with Node.
+  [`deploy/helm/contract-ratings/`](deploy/helm/contract-ratings/) per
+  customer at `cor.<subdomain>.<base_domain>` (see `os_alerts`
+  `COR_ADDON.md`).
+- **Standalone** — the kustomize overlays under
+  [`deploy/k8s/`](deploy/k8s/) deploy it by itself: `overlays/docker-desktop`
+  locally, `overlays/cloud` on any online cluster (see the repo root
+  `DEPLOYMENTS.md`), or run it directly with Node.
 
 Building the image, running without Kubernetes, and the k8s/Helm details
 are in [DOCKER_K8S.md](DOCKER_K8S.md).

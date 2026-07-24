@@ -20,6 +20,9 @@ Both share the route logic in
 everything else is a thin per-environment adapter. Full details:
 [`contract-ratings/README.md`](contract-ratings/README.md).
 
+Deployment targets are compared in [DEPLOYMENTS.md](DEPLOYMENTS.md)
+(same three-target layout as the `os_alerts` repo).
+
 ## Repository layout
 
 ```
@@ -27,9 +30,10 @@ contract-ratings/
   api/          core.mjs — shared route logic (used by both variants)
   frontend/     Vite + React + TypeScript SPA (shared-password or Cognito auth)
   server/       container HTTP server (node:sqlite + disk + password)
-  Dockerfile    container image (the primary deployment)
-  k8s/          Kubernetes manifests (Docker Desktop / standalone)
-  helm/         Helm chart (used by os_alerts per-tenant provisioning)
+  docker/       Dockerfile — container image (the primary deployment)
+  deploy/
+    k8s/        kustomize base + overlays (docker-desktop | cloud) — standalone
+    helm/       Helm chart (used by os_alerts per-tenant provisioning)
   scripts/      seed documents + importer, ECR publish script
   archive/aws/  parked AWS serverless variant (Lambda handler, terraform, DynamoDB seeder)
 ```
